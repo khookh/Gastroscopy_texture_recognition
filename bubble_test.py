@@ -6,7 +6,9 @@ import matplotlib.image as mpimg
 from skimage.data import camera, astronaut
 import skimage.color
 import skimage.io
+import skimage.feature
 import skimage.viewer
+import skimage.viewer.plugins
 from IPython.display import HTML, Image, SVG, YouTubeVideo
 import methods
 from skimage.io import imsave
@@ -50,7 +52,7 @@ plt.imshow(lut[image_gastro] / 255, cmap=cm.gray);
 rect = plt.Rectangle(*roi, facecolor=None, alpha=.25)
 plt.gca().add_patch(rect)
 plt.show()
-imsave('local_equalization.png',lut[image_gastro])
+imsave('local_equalization.png', lut[image_gastro])
 
 ##convolution
 import matplotlib.pyplot as plt
@@ -107,4 +109,24 @@ plt.subplot(1, 2, 2)
 plt.imshow(high_pass_circ.real, interpolation='nearest', origin='upper', cmap=cm.gray)
 plt.title('$g(x,y)*f(x,y)$');
 plt.show()
-imsave('conv.png',high_pass_circ.real)
+imsave('conv.png', high_pass_circ.real)
+
+##edge detection
+viewer = skimage.viewer.ImageViewer(skimage.color.rgb2gray(image_gastro))
+canny_plugin = skimage.viewer.plugins.Plugin(image_filter=skimage.feature.canny)
+canny_plugin.name = "Canny Filter Plugin"
+canny_plugin += skimage.viewer.widgets.Slider(
+    name="sigma", low=0.0, high=20.0, value=2.0
+)
+canny_plugin += skimage.viewer.widgets.Slider(
+    name="low_threshold", low=0.0, high=1.0, value=0.1
+)
+canny_plugin += skimage.viewer.widgets.Slider(
+    name="high_threshold", low=0.0, high=1.0, value=0.2
+)
+
+canny_plugin += skimage.viewer.widgets.SaveButtons(
+    name="save picture", default_format='png'
+)
+viewer += canny_plugin
+viewer.show()
