@@ -2,6 +2,8 @@ import numpy as np
 import skimage
 from matplotlib import cm
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 import matplotlib.image as mpimg
 from skimage.data import camera, astronaut
 import skimage.color
@@ -18,20 +20,27 @@ def norm_hist(ima):
 
 
 def display_hist(ima, vmin=None, vmax=None):
-    plt.figure(figsize=[10, 5])
-    nh_r = norm_hist(ima[:, :, 0])
-    nh_g = norm_hist(ima[:, :, 1])
-    nh_b = norm_hist(ima[:, :, 2])
+    figure = plt.figure(figsize=[10, 5])
+    if ima.ndim == 2:
+        nh = norm_hist(ima)
+    else:
+        nh_r = norm_hist(ima[:, :, 0])
+        nh_g = norm_hist(ima[:, :, 1])
+        nh_b = norm_hist(ima[:, :, 2])
     # display the results
     plt.subplot(1, 2, 1)
     plt.imshow(ima, cmap=cm.gray, vmin=vmin, vmax=vmax)
     plt.subplot(1, 2, 2)
-    plt.plot(nh_r, color='r', label='r')
-    plt.plot(nh_g, color='g', label='g')
-    plt.plot(nh_b, color='b', label='b')
+    if ima.ndim == 2:
+        plt.plot(nh, label='hist.')
+    else:
+        plt.plot(nh_r, color='r', label='r')
+        plt.plot(nh_g, color='g', label='g')
+        plt.plot(nh_b, color='b', label='b')
     plt.legend()
     plt.xlabel('gray level');
     plt.show()
+    plt.savefig('hist.png')
 def apply_lut(ima, lut, vmin=None, vmax=None):
     nh = norm_hist(ima)
     lima = lut[ima]
