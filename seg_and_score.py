@@ -39,6 +39,7 @@ def seg_hsv(img):
     # return cv.bitwise_and(img, img, mask=mask)
 
 
+# todo : improve score function with numpy library
 # renvoie un score de qualité à partir de l'image segmentée
 def score(ima, dim):
     score = 0
@@ -84,7 +85,7 @@ while cap.isOpened():
         ret = cv.morphologyEx(ret, cv.MORPH_CLOSE, kernel)
         ret = cv.morphologyEx(ret, cv.MORPH_OPEN, kernelb)
         ret = cv.dilate(ret, kernel, iterations=1)
-        sco = round(score(ret, dim))  # score
+        #sco = round(score(ret, dim))  # score
         # resize pour affichage propre
         ret = skimage.color.gray2rgb(ret)
         ret = cv.resize(ret, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
@@ -103,7 +104,6 @@ while cap.isOpened():
         # cv.imwrite('hsv_seg/test_sue%d_3.png'%count,image)
         count += 1
     else:  # si la frame n'est pas prête
-        cap.set(count)
         cv.waitKey(1)
     if cv.waitKey(1) & 0xFF == ord('p'):
         while True:
