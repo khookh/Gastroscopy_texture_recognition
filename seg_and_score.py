@@ -3,6 +3,14 @@ import skimage.color
 import skimage.io
 import skimage.viewer
 import cv2 as cv
+import methods
+
+
+def entropy(img):
+    p = np.array([(img == v).sum() for v in range(256)])
+    p = p / p.sum()
+    entr = -(p[p > 0] * np.log2(p[p > 0])).sum()
+    return entr
 
 
 def mean_hs(list_h, list_s):
@@ -50,6 +58,7 @@ def morph_trans(ima):
     kernel = np.ones((7, 7), np.uint8)
     kernelb = np.ones((5, 5), np.uint8)
     ima = cv.morphologyEx(ima, cv.MORPH_CLOSE, kernel)  # clustering
+    # ima = cv.medianBlur(ima, 3)
     ima = cv.morphologyEx(ima, cv.MORPH_OPEN, kernel)  # denoise
     ima = cv.dilate(ima, kernelb, iterations=1)
     return ima
@@ -74,9 +83,13 @@ while cap.isOpened():
     if retr:
         # frame = cv.medianBlur(frame, 5)
         ret, mean_h, mean_s = seg_hsv(frame)
-        ret = morph_trans(ret)
-        # score
-        sco = score(ret, dim) * 100
+        entr = entropy(frame)
+        if mean_s > 180:
+            sco = 1000000000000000000  # temp
+        else:
+            ret = morph_trans(ret)
+            # score
+            sco = score(ret, dim) * 100
         # resize pour affichage propre
         ret = skimage.color.gray2rgb(ret)
         ret = cv.resize(ret, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
@@ -88,11 +101,13 @@ while cap.isOpened():
                            cv.LINE_AA)
         image = cv.putText(image, 'score = %d' % sco, (5, 400), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'mean sat = %d' % mean_s, (5, 420), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
+        image = cv.putText(image, 'msat = %d' % mean_s, (5, 420), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
+                           cv.LINE_AA)
+        image = cv.putText(image, 'entropy = %d' % entr, (5, 350), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
                            cv.LINE_AA)
         # show dans la fenêtre
         # cv.imshow('comparison', image)
-        cv.imwrite('hsv_seg/test_sue%d_2.png' % count, image)
+        cv.imwrite('hsv_seg/test_sue%d_e.png' % count, image)
         count += 1
     else:  # si la frame n'est pas prête
         cv.waitKey(1)
