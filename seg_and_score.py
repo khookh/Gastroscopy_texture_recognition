@@ -1,16 +1,18 @@
 import numpy as np
 import skimage.color
 import skimage.io
+from skimage.filters.rank import entropy
+from skimage.morphology import disk
 import skimage.viewer
 import cv2 as cv
 import methods
 
 
-def entropy(img):
+def _entropy(img):
     p = np.array([(img == v).sum() for v in range(256)])
     p = p / p.sum()
     entr = -(p[p > 0] * np.log2(p[p > 0])).sum()
-    return entr
+    return entr #np.mean(entropy(skimage.color.rgb2gray(img),disk(10)))
 
 
 def mean_hs(list_h, list_s):
@@ -83,13 +85,14 @@ while cap.isOpened():
     if retr:
         # frame = cv.medianBlur(frame, 5)
         ret, mean_h, mean_s = seg_hsv(frame)
-        entr = entropy(frame)
-        if mean_s > 180:
-            sco = 1000000000000000000  # temp
+        entr = _entropy(frame)
+        if mean_s > 175 or entr < 6:
+            sco = "garbage"  # temp
         else:
             ret = morph_trans(ret)
             # score
-            sco = score(ret, dim) * 100
+            sco = str(score(ret, dim) * 100)
+
         # resize pour affichage propre
         ret = skimage.color.gray2rgb(ret)
         ret = cv.resize(ret, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
@@ -99,11 +102,11 @@ while cap.isOpened():
         # add score + n frame à l'image
         image = cv.putText(numpy_h_concat, 'Frame %d' % count, (5, 370), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255), 1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'score = %d' % sco, (5, 400), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
+        image = cv.putText(image, 'score = %s' % sco, (5, 400), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
                            cv.LINE_AA)
         image = cv.putText(image, 'msat = %d' % mean_s, (5, 420), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'entropy = %d' % entr, (5, 350), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
+        image = cv.putText(image, 'entropy = %f' % entr, (5, 350), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
                            cv.LINE_AA)
         # show dans la fenêtre
         # cv.imshow('comparison', image)
