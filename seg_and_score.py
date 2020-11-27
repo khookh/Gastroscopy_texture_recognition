@@ -5,6 +5,7 @@ import skimage.color
 import skimage.viewer
 import cv2 as cv
 import sys
+import os
 
 
 # segmentation (HSV)
@@ -18,7 +19,7 @@ def seg_hsv(img):
         tresh_s = mean_s
     # temp seg masks
     mask = cv.inRange(img, (0, 0, 170), (179, tresh_s, 240))  # direct light
-    mask2 = cv.inRange(img, (0, 0, 10), (30, 45, 140))  # low light foam
+    mask2 = cv.inRange(img, (0, 0, 10), (30, 65, 140))  # low light foam
     return mask + mask2, mean_s
     # return cv.bitwise_and(img, img, mask=mask)
 
@@ -48,6 +49,7 @@ count = 1
 sco = 'null'
 mean_s = 0
 score_list = np.array([])
+temp_score_list = np.array([])
 while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
     cap = cv.VideoCapture(str(sys.argv[1]))
     cv.waitKey(1000)
@@ -62,12 +64,17 @@ while cap.isOpened():
             frame_treated = np.zeros(dimensions)
         # motion blur level
         blur = cv.Laplacian(frame, cv.CV_64F).var()
-        if blur < 1150:
+        if blur < 1200:
             frame_treated, mean_s = seg_hsv(frame)
             if mean_s < 130:
                 frame_treated = morph_trans(frame_treated)
-                sco = str(round(score(frame_treated, dim) * 100, 3))
-                score_list = np.append(score_list, sco)
+                sco_s = (round(score(frame_treated, dim) * 100, 3))
+                temp_score_list = np.append(temp_score_list, sco_s)
+                sco = str(sco_s)
+        else:
+            if temp_score_list.size > 3:
+                score_list = np.append(score_list, temp_score_list)
+            temp_score_list = np.array([])
         try:
             # Affichage
             frame_treated_f = skimage.color.gray2rgb(frame_treated)
@@ -105,5 +112,6 @@ while cap.isOpened():
 cap.release()
 cv.destroyAllWindows()
 
-print(score_list)
-print(np.mean(score_list))
+f = open("output_%s.txt" % os.path.basename(str(sys.argv[1])), "w")
+f.write("Mean score = %d \n" % np.mean(score_list))
+f.write("%d %% of the frame from the video were treated" % (score_list.size * 100.0 / count))
