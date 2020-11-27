@@ -7,22 +7,6 @@ import cv2 as cv
 import sys
 
 
-def mean_hs(list_h, list_s):
-    _count = 0
-    _sum_h = 0
-    _sum_s = 0
-    it = 0
-    x, y = list_h.shape
-    for i in range(x):
-        for j in range(y):
-            it += 1
-            if it % 20 == 0:
-                _count += 1
-                _sum_h += list_h[i, j]
-                _sum_s += list_s[i, j]
-    return _sum_h / _count, _sum_s / _count
-
-
 # segmentation (HSV)
 def seg_hsv(img):
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
@@ -40,11 +24,11 @@ def seg_hsv(img):
 
 
 # renvoie un score de qualité à partir de l'image binaire
-def score(ima, dim):
+def score(ima, _dim):
     score = 0
     bad_pixels = cv.findNonZero(ima)
     if bad_pixels is not None:
-        score = bad_pixels.shape[0] / (4 * dim[0] * dim[1])
+        score = bad_pixels.shape[0] / (4 * _dim[0] * _dim[1])
     return score
 
 
@@ -62,6 +46,7 @@ def morph_trans(ima):
 cap = cv.VideoCapture(str(sys.argv[1]))
 count = 1
 sco = 'null'
+mean_s = 0
 score_list = np.array([])
 while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
     cap = cv.VideoCapture(str(sys.argv[1]))
@@ -69,39 +54,44 @@ while not cap.isOpened():  # attente active en cas de lecture de flux en real-ti
     print("Wait for the header")
 while cap.isOpened():
     retr, frame = cap.read()
-    if count == 1:  # récupère les dimensions au début
-        dimensions = frame.shape
-        centrex, centrey = dimensions[1] / 2, dimensions[0] / 2
-        dim = (int(centrex), int(centrey))
     if retr:
+        if count == 1:
+            dimensions = frame.shape
+            centrex, centrey = dimensions[1] / 2, dimensions[0] / 2
+            dim = (int(centrex), int(centrey))
+            frame_treated = np.zeros(dimensions)
         # motion blur level
         blur = cv.Laplacian(frame, cv.CV_64F).var()
-        ret, mean_s = seg_hsv(frame)
-        if blur < 1150 and mean_s < 130:
-            ret = morph_trans(ret)
-            sco = str(round(score(ret, dim) * 100, 3))
-            score_list = np.append(score_list, [sco])
-
-        # Affichage
-        ret = skimage.color.gray2rgb(ret)
-        # resize pour affichage propre
-        ret = cv.resize(ret, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
-        frame = cv.resize(frame, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
-        # concatene les deux images pour comparaison
-        numpy_h_concat = np.hstack((frame, ret))
-        # rajoute les paramètres informatifs
-        image = cv.putText(numpy_h_concat, 'Frame %d' % count, (5, 370), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255), 1,
-                           cv.LINE_AA)
-        image = cv.putText(image, 'score = %s' % sco, (5, 400), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
-                           cv.LINE_AA)
-        image = cv.putText(image, 'msat = %d' % round(mean_s, 3), (5, 420), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
-                           cv.LINE_AA)
-        image = cv.putText(image, 'blur = %d' % round(blur), (5, 350), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
-                           cv.LINE_AA)
-        # show dans la fenêtre
-        # cv.imshow('comparison', image)
-        # cv.imwrite('hsv_seg/test_sue%d_e.png' % count, image)
-
+        if blur < 1150:
+            frame_treated, mean_s = seg_hsv(frame)
+            if mean_s < 130:
+                frame_treated = morph_trans(frame_treated)
+                sco = str(round(score(frame_treated, dim) * 100, 3))
+                score_list = np.append(score_list, sco)
+        try:
+            # Affichage
+            frame_treated_f = skimage.color.gray2rgb(frame_treated)
+            # resize pour affichage propre
+            frame_treated_f = cv.resize(frame_treated_f, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
+            frame = cv.resize(frame, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
+            # concatene les deux images pour comparaison
+            numpy_h_concat = np.hstack((frame, frame_treated_f))
+            # rajoute les paramètres informatifs
+            image = cv.putText(numpy_h_concat, 'Frame %d' % count, (5, 370), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
+                               1,
+                               cv.LINE_AA)
+            image = cv.putText(image, 'score = %s' % sco, (5, 400), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
+                               cv.LINE_AA)
+            image = cv.putText(image, 'msat = %d' % round(mean_s, 3), (5, 420), cv.FONT_HERSHEY_SIMPLEX, .5,
+                               (0, 0, 255), 1,
+                               cv.LINE_AA)
+            image = cv.putText(image, 'blur = %d' % round(blur), (5, 350), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
+                               cv.LINE_AA)
+            # show dans la fenêtre
+            cv.imshow('comparison', image)
+            # cv.imwrite('test2/seg%d.png' % count, image)
+        except:
+            print("Fail to display frame %d" % count)
         count += 1
     else:  # si la frame n'est pas prête
         cv.waitKey(1)
@@ -115,4 +105,5 @@ while cap.isOpened():
 cap.release()
 cv.destroyAllWindows()
 
+print(score_list)
 print(np.mean(score_list))
