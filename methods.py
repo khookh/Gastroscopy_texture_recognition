@@ -36,7 +36,7 @@ def display_hist(ima, vmin=None, vmax=None):
         plt.savefig('hist.png')
     plt.legend()
     plt.xlabel('gray level');
-    plt.show()
+    # plt.show()
     return plt
 
 
@@ -98,3 +98,9 @@ def seg_his(ima, path):
     # viewer.show()
     cv.imwrite(path, sel)
     return sel
+
+def _entropy(img):
+    p = np.array([(img == v).sum() for v in range(256)])
+    p = p / p.sum()
+    entr = -(p[p > 0] * np.log2(p[p > 0])).sum()
+    return entr  # np.mean(entropy(skimage.color.rgb2gray(img),disk(10)))

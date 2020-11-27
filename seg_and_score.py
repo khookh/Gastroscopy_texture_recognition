@@ -8,12 +8,6 @@ import cv2 as cv
 import methods
 
 
-def _entropy(img):
-    p = np.array([(img == v).sum() for v in range(256)])
-    p = p / p.sum()
-    entr = -(p[p > 0] * np.log2(p[p > 0])).sum()
-    return entr #np.mean(entropy(skimage.color.rgb2gray(img),disk(10)))
-
 
 def mean_hs(list_h, list_s):
     _count = 0
@@ -31,21 +25,22 @@ def mean_hs(list_h, list_s):
     return _sum_h / _count, _sum_s / _count
 
 
-# segmentation (HSV based)
+# segmentation (HSV)
 def seg_hsv(img):
-    img = cv.cvtColor(img, cv.COLOR_RGB2HSV)
+    img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     h, s, v = cv.split(img)
     mean_h, mean_s = np.mean(np.ndarray.flatten(h)), np.mean(np.ndarray.flatten(s))
     if mean_s < 120:  # test
         tresh_s = mean_s * 0.9
     else:
         tresh_s = mean_s
-    mask = cv.inRange(img, (20, 0, 170), (255, tresh_s, 240))
-    return mask, mean_h, mean_s
+    #temp seg masks
+    mask = cv.inRange(img, (3, 0, 170), (179, tresh_s, 240)) #direct light
+    mask2 = cv.inRange(img, (0, 0, 10), (30, 45, 140)) #low light foam
+    return mask+mask2, mean_h, mean_s
     # return cv.bitwise_and(img, img, mask=mask)
 
 
-# todo : improve score function with numpy library
 # renvoie un score de qualité à partir de l'image binaire
 def score(ima, dim):
     score = 0
@@ -66,13 +61,11 @@ def morph_trans(ima):
     return ima
 
 
-image_gastro = skimage.io.imread('bulles.png')
-
 # lecture flux vidéo
-cap = cv.VideoCapture('gastroscopy.mpg')
+cap = cv.VideoCapture("set_nov/Capture0016.mov") #"set_nov/Capture0016.mov"
 count = 1
 while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
-    cap = cv.VideoCapture("gastroscopy.mpg")
+    cap = cv.VideoCapture("set_nov/Capture0016.mov")
     cv.waitKey(1000)
     print("Wait for the header")
 while cap.isOpened():
@@ -85,14 +78,9 @@ while cap.isOpened():
     if retr:
         # frame = cv.medianBlur(frame, 5)
         ret, mean_h, mean_s = seg_hsv(frame)
-        entr = _entropy(frame)
-        if mean_s > 175 or entr < 6:
-            sco = "garbage"  # temp
-        else:
-            ret = morph_trans(ret)
-            # score
-            sco = str(score(ret, dim) * 100)
-
+        ret = morph_trans(ret)
+        # score
+        sco = str(score(ret, dim) * 100)
         # resize pour affichage propre
         ret = skimage.color.gray2rgb(ret)
         ret = cv.resize(ret, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
@@ -106,11 +94,9 @@ while cap.isOpened():
                            cv.LINE_AA)
         image = cv.putText(image, 'msat = %d' % mean_s, (5, 420), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'entropy = %f' % entr, (5, 350), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
-                           cv.LINE_AA)
         # show dans la fenêtre
-        # cv.imshow('comparison', image)
-        cv.imwrite('hsv_seg/test_sue%d_e.png' % count, image)
+        cv.imshow('comparison', image)
+        # cv.imwrite('hsv_seg/test_sue%d_e.png' % count, image)
         count += 1
     else:  # si la frame n'est pas prête
         cv.waitKey(1)
