@@ -113,5 +113,5 @@ cap.release()
 cv.destroyAllWindows()
 
 f = open("output_%s.txt" % os.path.basename(str(sys.argv[1])), "w")
-f.write("Mean score = %d \n" % np.mean(score_list))
-f.write("%d %% of the frame from the video were treated" % (score_list.size * 100.0 / count))
+f.write("Mean score = %.2f \n" % np.mean(score_list))
+f.write("%.2f %% of the frame from the video were treated" % (score_list.size * 100.0 / count))
