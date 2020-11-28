@@ -19,7 +19,7 @@ def seg_hsv(img):
         tresh_s = mean_s
     # temp seg masks
     mask = cv.inRange(img, (0, 0, 170), (179, tresh_s, 240))  # direct light
-    mask2 = cv.inRange(img, (0, 0, 10), (30, 65, 140))  # low light foam
+    mask2 = cv.inRange(img, (0, 0, 55), (30, 80, 140))  # low light foam
     return mask + mask2, mean_s
     # return cv.bitwise_and(img, img, mask=mask)
 
@@ -41,6 +41,13 @@ def morph_trans(ima):
     ima = cv.morphologyEx(ima, cv.MORPH_OPEN, kernel)  # denoise
     ima = cv.dilate(ima, kernelb, iterations=1)
     return ima
+
+
+def save():
+    global score_list, temp_score_list
+    if temp_score_list.size > 3:
+        score_list = np.append(score_list, temp_score_list)
+    temp_score_list = np.array([])
 
 
 # lecture flux vidéo
@@ -72,9 +79,7 @@ while cap.isOpened():
                 temp_score_list = np.append(temp_score_list, sco_s)
                 sco = str(sco_s)
         else:
-            if temp_score_list.size > 3:
-                score_list = np.append(score_list, temp_score_list)
-            temp_score_list = np.array([])
+            save()
         try:
             # Affichage
             frame_treated_f = skimage.color.gray2rgb(frame_treated)
@@ -109,6 +114,7 @@ while cap.isOpened():
                 break
     elif k == ord('q'):
         break
+save()
 cap.release()
 cv.destroyAllWindows()
 
