@@ -53,8 +53,9 @@ def save():
 # lecture flux vidéo
 cap = cv.VideoCapture(str(sys.argv[1]))
 count = 1
-sco = 'null'
+sco = 0
 mean_s = 0
+mean_sv = np.array([])
 score_list = np.array([])
 temp_score_list = np.array([])
 while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
@@ -73,11 +74,12 @@ while cap.isOpened():
         blur = cv.Laplacian(frame, cv.CV_64F).var()
         if blur < 1200:
             frame_treated, mean_s = seg_hsv(frame)
-            if mean_s < 130:
+            mean_sv = np.append(mean_sv, mean_s)
+            if mean_s < np.mean(mean_sv) + 50:
                 frame_treated = morph_trans(frame_treated)
-                sco_s = (round(score(frame_treated, dim) * 100, 3))
-                temp_score_list = np.append(temp_score_list, sco_s)
-                sco = str(sco_s)
+                sco = (round(score(frame_treated, dim) * 100, 3))
+                temp_score_list = np.append(temp_score_list, sco)
+
         else:
             save()
         try:
@@ -92,7 +94,8 @@ while cap.isOpened():
             image = cv.putText(numpy_h_concat, 'Frame %d' % count, (5, 370), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                                1,
                                cv.LINE_AA)
-            image = cv.putText(image, 'score = %s' % sco, (5, 400), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
+            image = cv.putText(image, 'mean_score = %.2f' % np.mean(score_list), (5, 400), cv.FONT_HERSHEY_SIMPLEX, .5,
+                               (0, 0, 255), 1,
                                cv.LINE_AA)
             image = cv.putText(image, 'msat = %d' % round(mean_s, 3), (5, 420), cv.FONT_HERSHEY_SIMPLEX, .5,
                                (0, 0, 255), 1,
