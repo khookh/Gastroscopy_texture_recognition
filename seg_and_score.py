@@ -7,8 +7,6 @@ import cv2 as cv
 import sys
 import os
 
-import methods
-
 
 # segmentation (HSV)
 def seg_hsv(img):
@@ -16,9 +14,10 @@ def seg_hsv(img):
     h, s, v = cv.split(img)
     mean_s = np.mean(np.ndarray.flatten(s))
     # temp seg masks
-    mask = cv.inRange(img, (0, 0, 170), (179, 100, 240))  # direct light
-    mask2 = cv.inRange(img, (0, 0, 55), (30, 80, 140))  # low light foam
-    return mask + mask2, mean_s
+    mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
+    mask2 = cv.inRange(img, (0, 0, 90), (30, 95, 170))  # low light foam
+    mask25  = cv.inRange(img, (170, 0, 90), (179, 95, 170))
+    return mask + mask2 + mask25, mean_s
     # return cv.bitwise_and(img, img, mask=mask)
 
 
@@ -35,8 +34,9 @@ def score(ima, _dim):
 def morph_trans(ima):
     kernel = np.ones((9, 9), np.uint8)
     kernelb = np.ones((5, 5), np.uint8)
-    # ima = cv.morphologyEx(ima, cv.MORPH_OPEN, np.ones((3, 3), np.uint8))  # denoise
-    ima = cv.morphologyEx(ima, cv.MORPH_CLOSE, kernel)  # clustering
+    ima = cv.morphologyEx(ima, cv.MORPH_CLOSE, kernel)
+    ima = cv.morphologyEx(ima, cv.MORPH_OPEN, np.ones((3, 3), np.uint8))  # denoise
+    #ima = cv.morphologyEx(ima, cv.MORPH_CLOSE,  np.ones((3, 3), np.uint8))# clustering
     ima = cv.morphologyEx(ima, cv.MORPH_OPEN, kernel)  # denoise
     # ima = cv.dilate(ima, kernelb, iterations=1)
     return ima
@@ -69,7 +69,7 @@ def section_score():
 
 def save():
     global section_score_list, temp_score_list
-    if temp_score_list.size > 5:
+    if temp_score_list.size > 8:
         section_score_list = np.append(section_score_list, temp_score_list)
     temp_score_list = np.array([])
 
@@ -90,7 +90,6 @@ while not cap.isOpened():  # attente active en cas de lecture de flux en real-ti
     print("Wait for the header")
 while cap.isOpened():
     retr, frame = cap.read()
-    # methods.sat_hist(frame,count).savefig('sat_hist/sat_hist%i.png' % count)
     if retr:
         if count == 1:
             dimensions = frame.shape
@@ -105,12 +104,8 @@ while cap.isOpened():
         if p_capture is True and strict_diff():
             p_capture = False
             section_score()
-            print(section)
-
         if blur < 1200:
             frame_treated, mean_s = seg_hsv(frame)
-            # cv.imwrite('frames/masked%d.png' % count,frame_treated)
-            # mean_sv = np.append(mean_sv, mean_s)
             if mean_s < 130:  # np.mean(mean_sv) + 50:
                 frame_treated = morph_trans(frame_treated)
                 sco = (round(score(frame_treated, dim) * 100, 3))
@@ -141,7 +136,6 @@ while cap.isOpened():
                                cv.LINE_AA)
             # show dans la fenêtre
             cv.imshow('comparison', image)
-            # cv.imwrite('test2/seg%d.png' % count, image)
             # cv.imwrite('frames/frame%d.png' % count, image)
         except:
             print("Fail to display frame %d" % count)
@@ -162,5 +156,5 @@ cap.release()
 cv.destroyAllWindows()
 
 f.write("Mean score of whole video = %.2f \n" % np.mean(score_list))
-f.write("%.2f %% of the frame from the video were treated" % (score_list.size * 100.0 / count))
+f.write("(%.2f %% of the frame from the video were treated)" % (score_list.size * 100.0 / count))
 f.close()
