@@ -77,7 +77,6 @@ def save():
 # lecture flux vidéo
 section, count = 1, 1
 mean_s, sco, blur = 0, 0, 0
-pause = False
 p_capture = False
 over = False
 blur_list = np.array([])
@@ -90,13 +89,13 @@ f = open("output_%s.txt" % os.path.basename(str(sys.argv[1])), "w")
 
 
 def read_flux():
-    global count, pause, over
+    global count,  over
     cap = cv.VideoCapture(str(sys.argv[1]))
     while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
-        pause = True
         cap = cv.VideoCapture(str(sys.argv[1]))
         cv.waitKey(500)
     while cap.isOpened():
+        print("r")
         while q_frame.qsize() > 50:
             time.sleep(0)
         retr, frame = cap.read()
@@ -113,11 +112,12 @@ def read_flux():
 
 
 def frame_treatment():
-    global temp_score_list, section_score_list, score_list, blur_list, count, section, p_capture, blur, mean_s, pause
+    global temp_score_list, section_score_list, score_list, blur_list, count, section, p_capture, blur, mean_s
     local_count = 1
     while True:
-        while pause is True and q_frame.empty():
-            cv.waitKey(1)
+        print("t")
+        while q_frame.empty():
+            time.sleep(0)
         frame = q_frame.get()
         if local_count == 1:
             dimensions = frame.shape
@@ -150,12 +150,11 @@ def frame_treatment():
 
 
 def display_t():
-    global score_list, count, pause, over
+    global score_list, count, over
     local_count = 1
     while True:
-        while pause is True and q_treated.empty():
-            cv.waitKey(1)
-        if q_treated.empty():
+        print("d")
+        while q_treated.empty():
             time.sleep(0)
         frame = q_treated.get()
         # Affichage
@@ -184,12 +183,10 @@ def display_t():
         # cv.imwrite('frames/frame%d.png' % count, image)
         k = cv.waitKey(1) & 0xFF
         if k == ord('p'):
-            pause = True
             while True:
                 if cv.waitKey(1) & 0xFF == ord('s'):
-                    pause = False
                     break
-        elif k == ord('q'):
+        if k == ord('q') or over is True:
             over = True
             cv.destroyAllWindows()
             break
@@ -201,9 +198,8 @@ thread_display = Thread(target=display_t)
 thread_fetch.start()
 thread_treatment.start()
 thread_display.start()
-thread_fetch.join()
+
 thread_treatment.join()
-thread_display.join()
 
 f.write("Mean score of whole video = %.2f \n" % np.mean(score_list))
 f.write("(%.2f %% of the frame from the video were treated)" % (score_list.size * 100.0 / count))
