@@ -44,7 +44,7 @@ def morph_trans(ima):
 
 def strict_diff():
     global blur_list, count
-    if count > 4:
+    if blur_list.size > 4:
         if blur_list[-1] != blur_list[-2] and blur_list[-2] != blur_list[-3] and blur_list[-3] != blur_list[-4]:
             return True
     return False
@@ -52,7 +52,7 @@ def strict_diff():
 
 def strict_eq():
     global blur_list, count
-    if count > 4:
+    if blur_list.size > 4:
         if blur_list[-1] == blur_list[-2] and blur_list[-2] == blur_list[-3] and blur_list[-3] == blur_list[-4]:
             return True
     return False
@@ -97,6 +97,8 @@ def read_flux():
         cap = cv.VideoCapture(str(sys.argv[1]))
         cv.waitKey(500)
     while cap.isOpened():
+        while q_frame.qsize() > 50:
+            time.sleep(0)
         retr, frame = cap.read()
         q_frame.put(frame)
         if retr is not True and count > 1:
@@ -105,26 +107,19 @@ def read_flux():
             break
         elif retr is True:
             count += 1
-        k = cv.waitKey(1) & 0xFF
-        if k == ord('p'):
-            pause = True
-            while True:
-                if cv.waitKey(1) & 0xFF == ord('s'):
-                    pause = False
-                    break
-        elif k == ord('q'):
+        if over is True:
             cap.release()
-            over = True
             break
 
 
 def frame_treatment():
     global temp_score_list, section_score_list, score_list, blur_list, count, section, p_capture, blur, mean_s, pause
+    local_count = 1
     while True:
         while pause is True and q_frame.empty():
             cv.waitKey(1)
-        frame = q_frame.get
-        if count == 1:
+        frame = q_frame.get()
+        if local_count == 1:
             dimensions = frame.shape
             centrex, centrey = dimensions[1] / 2, dimensions[0] / 2
             dim = (int(centrex), int(centrey))
@@ -142,7 +137,6 @@ def frame_treatment():
             if mean_s < 130:  # np.mean(mean_sv) + 50:
                 frame_treated = morph_trans(frame_treated)
                 temp_score_list = np.append(temp_score_list, round(score(frame_treated, dim) * 100, 3))
-                q_treated.put(frame)
             else:
                 save()
         else:
@@ -151,23 +145,28 @@ def frame_treatment():
             save()
             section_score()
             break
+        q_treated.put(frame)
+        local_count += 1
 
 
 def display_t():
     global score_list, count, pause, over
+    local_count = 1
     while True:
         while pause is True and q_treated.empty():
             cv.waitKey(1)
-        frame = q_treated.get
+        if q_treated.empty():
+            time.sleep(0)
+        frame = q_treated.get()
         # Affichage
-        # frame_treated_f = skimage.color.gray2rgb(frame_treated)
+        frame = skimage.color.gray2rgb(frame)
         # resize pour affichage propre
         # frame_treated_f = cv.resize(frame_treated_f, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
         frame = cv.resize(frame, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
         # concatene les deux images pour comparaison
         # numpy_h_concat = np.hstack((frame, frame_treated_f))
         # rajoute les paramètres informatifs
-        image = cv.putText(frame, 'Frame %d' % count, (5, 370), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
+        image = cv.putText(frame, 'Frame %d' % local_count, (5, 370), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
                            cv.LINE_AA)
         image = cv.putText(image, 'mean score = %.2f' % np.mean(section_score_list), (5, 400),
@@ -181,8 +180,17 @@ def display_t():
         #                   cv.LINE_AA)
         # show dans la fenêtre
         cv.imshow('comparison', image)
+        local_count+=1
         # cv.imwrite('frames/frame%d.png' % count, image)
-        if over is True:
+        k = cv.waitKey(1) & 0xFF
+        if k == ord('p'):
+            pause = True
+            while True:
+                if cv.waitKey(1) & 0xFF == ord('s'):
+                    pause = False
+                    break
+        elif k == ord('q'):
+            over = True
             cv.destroyAllWindows()
             break
 
@@ -194,6 +202,8 @@ thread_fetch.start()
 thread_treatment.start()
 thread_display.start()
 thread_fetch.join()
+thread_treatment.join()
+thread_display.join()
 
 f.write("Mean score of whole video = %.2f \n" % np.mean(score_list))
 f.write("(%.2f %% of the frame from the video were treated)" % (score_list.size * 100.0 / count))
