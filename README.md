@@ -17,5 +17,5 @@ Each frame is treated independly :
 
 1. Determination of a uniformity score based on gaussian blur 
 2. Foam segmentation in the HSV space
-3. Detection enhancment with morphological transform
+3. Detection enhancement with morphological transforms
 4. Scoring based on pollution density
