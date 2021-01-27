@@ -24,11 +24,11 @@ def seg_hsv(img):
 
 # renvoie un score de qualité à partir de l'image binaire
 def score(ima, _dim):
-    score = 0
+    scoring = 0
     bad_pixels = cv.findNonZero(ima)
     if bad_pixels is not None:
-        score = bad_pixels.shape[0] / (4 * _dim[0] * _dim[1])
-    return score
+        scoring = bad_pixels.shape[0] / (4 * _dim[0] * _dim[1])
+    return scoring
 
 
 kernel = np.ones((9, 9), np.uint8)
@@ -44,6 +44,7 @@ def morph_trans(ima):
     # ima = cv.dilate(ima, np.ones((5, 5), np.uint8), iterations=1)
     return ima
 
+
 # returns the uniformity of the image
 def uniformity(ima):
     blur1_uni = cv.GaussianBlur(ima, (7, 7), 1)
@@ -51,6 +52,7 @@ def uniformity(ima):
     return np.sum((blur1_uni - blur2_uni) ** 2)
 
 
+# Return True if the 6 previous frames are strictly different
 def strict_diff():
     global blur_list
     if blur_list.size > 6:
@@ -61,11 +63,12 @@ def strict_diff():
     return False
 
 
+# Return True if the 4 previous frames are similar
 def strict_eq():
     global blur_list
     if blur_list.size > 4:
         for i in range(4):
-            if blur_list[-1-i] != blur_list[-1-i-1]:
+            if blur_list[-1 - i] != blur_list[-1 - i - 1]:
                 return False
         return True
     return False
@@ -91,7 +94,7 @@ def save():
 
 # lecture flux vidéo
 section, count = 1, 1
-sco,  unfy = 0, 0
+sco, unfy = 0, 0
 p_capture = False
 over = False
 blur_list = np.array([])
@@ -128,8 +131,9 @@ def read_flux():
 
 # thread treating the frames
 def frame_treatment():
-    global temp_score_list, section_score_list, score_list, blur_list, count, section, p_capture, unfy
+    global temp_score_list, section_score_list, score_list, blur_list, count, section, p_capture, unfy, over
     local_count = 1
+    dim = (0, 0)
     while True:
         if q_frame.empty():
             time.sleep(0)
@@ -140,7 +144,7 @@ def frame_treatment():
             dim = (int(centrex), int(centrey))
             frame_treated = np.zeros(dimensions)
         # uniformity
-        unfy = uniformity(frame) /(dim[0]*dim[1]*4)
+        unfy = uniformity(frame) / (dim[0] * dim[1] * 4)
         blur_list = np.append(blur_list, unfy)
         if p_capture is False and strict_eq():
             print("CAP\n")
@@ -173,12 +177,10 @@ def display_t():
     while True:
         if q_treated.empty():
             time.sleep(0)
-        frame = q_treated.get()#[0]
+        frame = q_treated.get()  # [0]
         # Affichage
         frame = skimage.color.gray2rgb(frame)
         # resize pour affichage propre
-        # frame_treated_f = cv.resize(frame_treated_f, None, fx=0.4, fy=0.4, interpolation=cv.INTER_AREA)
-        # frame = cv.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv.INTER_CUBIC)
         # concatene les deux images pour comparaison
         # numpy_h_concat = np.hstack((frame, frame_treated_f))
         # rajoute les paramètres informatifs
@@ -189,12 +191,8 @@ def display_t():
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
-        #image = cv.putText(image, 'uniformity = %d' % round(q_treated.get()[1]), (5, 420), cv.FONT_HERSHEY_SIMPLEX, .5,
-        #                   (0, 0, 255), 1,
-        #                   cv.LINE_AA)
-        #image = cv.putText(image, 'blur = %d' % round(q_treated.get()[1]), (5, 350), cv.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1,
-        #                   cv.LINE_AA)
-        # show dans la fenêtre
+        # image = cv.putText(image, 'uniformity = %d' % round(q_treated.get()[1]), (5, 420), cv.FONT_HERSHEY_SIMPLEX,
+        # .5, (0, 0, 255), 1, cv.LINE_AA) show dans la fenêtre
         cv.imshow('comparison', image)
         local_count += 1
         cv.imwrite('frames/resizeLINEAR%d.png' % local_count, image)
@@ -216,6 +214,7 @@ thread_fetch.start()
 thread_treatment.start()
 thread_display.start()
 
+# thread treatment stops when either the display or the fetch has stopped
 thread_treatment.join()
 
 f.write("Mean score of whole video = %.2f \n" % np.mean(score_list))
