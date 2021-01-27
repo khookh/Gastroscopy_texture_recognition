@@ -92,7 +92,6 @@ def save():
     temp_score_list = np.array([])
 
 
-# lecture flux vidéo
 section, count = 1, 1
 sco, unfy = 0, 0
 p_capture = False
@@ -147,11 +146,9 @@ def frame_treatment():
         unfy = uniformity(frame) / (dim[0] * dim[1] * 4)
         blur_list = np.append(blur_list, unfy)
         if p_capture is False and strict_eq():
-            print("CAP\n")
             p_capture = True
             save()
         if p_capture is True and strict_diff():
-            print("outCAP\n")
             p_capture = False
             section_score()
             temp_score_list = np.array([])
