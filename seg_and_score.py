@@ -53,17 +53,21 @@ def uniformity(ima):
 
 def strict_diff():
     global blur_list
-    if blur_list.size > 4:
-        if blur_list[-1] != blur_list[-2] and blur_list[-2] != blur_list[-3] and blur_list[-3] != blur_list[-4]:
-            return True
+    if blur_list.size > 6:
+        for i in range(6):
+            if blur_list[-1 - i] == blur_list[-1 - i - 1]:
+                return False
+        return True
     return False
 
 
 def strict_eq():
     global blur_list
     if blur_list.size > 4:
-        if blur_list[-1] == blur_list[-2] and blur_list[-2] == blur_list[-3] and blur_list[-3] == blur_list[-4]:
-            return True
+        for i in range(4):
+            if blur_list[-1-i] != blur_list[-1-i-1]:
+                return False
+        return True
     return False
 
 
@@ -138,15 +142,16 @@ def frame_treatment():
         # uniformity
         unfy = uniformity(frame) /(dim[0]*dim[1]*4)
         blur_list = np.append(blur_list, unfy)
-        if strict_eq():
+        if p_capture is False and strict_eq():
+            print("CAP\n")
             p_capture = True
             save()
         if p_capture is True and strict_diff():
+            print("outCAP\n")
             p_capture = False
             section_score()
             temp_score_list = np.array([])
-
-        if unfy > 15:  # np.mean(mean_sv) + 50:
+        if unfy > 15:
             frame_treated = seg_hsv(frame)
             frame_treated = morph_trans(frame_treated)
             temp_score_list = np.append(temp_score_list, round(score(frame_treated, dim) * 100, 3))
@@ -157,7 +162,7 @@ def frame_treatment():
             save()
             section_score()
             break
-        q_treated.put(frame)#(frame,unfy))
+        q_treated.put(frame)
         local_count += 1
 
 
