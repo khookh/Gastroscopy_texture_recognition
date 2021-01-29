@@ -92,6 +92,7 @@ def save():
     temp_score_list = np.array([])
 
 
+# lecture flux vidéo
 section, count = 1, 1
 sco, unfy = 0, 0
 p_capture = False
@@ -103,21 +104,21 @@ section_score_list = np.array([])
 q_frame = queue.Queue()
 q_treated = queue.Queue()
 f = open("output_%s.txt" % os.path.basename(str(sys.argv[1])), "w")
-
+cap = cv.VideoCapture(str(sys.argv[1]))
 
 # Thread reading the video flux
 def read_flux():
-    global count, over
-    cap = cv.VideoCapture(str(sys.argv[1]))
+    global count, over, cap
     while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
         cap = cv.VideoCapture(str(sys.argv[1]))
         cv.waitKey(500)
     while cap.isOpened():
-        while q_frame.qsize() > 50:
+        while q_frame.qsize() > 100:
             time.sleep(0)
         retr, frame = cap.read()
         if retr is not True and count > 1:
             cap.release()
+            cv.destroyAllWindows()
             over = True
             break
         if retr is True:
@@ -125,7 +126,9 @@ def read_flux():
             count += 1
         if over is True:
             cap.release()
+            cv.destroyAllWindows()
             break
+
 
 
 # thread treating the frames
@@ -160,6 +163,7 @@ def frame_treatment():
             save()
 
         if over is True:
+            cv.destroyAllWindows()
             save()
             section_score()
             break
@@ -192,7 +196,7 @@ def display_t():
         # .5, (0, 0, 255), 1, cv.LINE_AA) show dans la fenêtre
         cv.imshow('comparison', image)
         local_count += 1
-        cv.imwrite('frames/resizeLINEAR%d.png' % local_count, image)
+        # cv.imwrite('frames/resizeLINEAR%d.png' % local_count, image)
         k = cv.waitKey(1) & 0xFF
         if k == ord('p'):
             while True:
