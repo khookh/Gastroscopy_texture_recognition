@@ -10,6 +10,7 @@ import time
 import sys
 import os
 import thread_wrapper as t_w
+import time
 
 
 # segmentation (HSV)
@@ -59,7 +60,7 @@ over = False
 q_frame = queue.Queue()
 q_treated = queue.Queue()
 
-if str(sys.argv[3]) == "-usb":
+if str(sys.argv[3]) == "-usb": #temporaire
     cap = cv.VideoCapture(0)
     wrap = t_w.Wrap_("output_hd")
 else:
@@ -86,7 +87,8 @@ def read_flux():
             over = True
             break
         if retr is True:
-            q_frame.put(cv.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv.INTER_CUBIC))
+            if count % int(sys.argv[4]) == 0: #temporaire
+                q_frame.put(cv.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv.INTER_CUBIC))
             count += 1
         if over is True:
             cap.release()
@@ -133,17 +135,25 @@ def frame_treatment():
 def display_t():
     global wrap, count, over
     local_count = 1
+    start = time.time()
+    fps = 0
     while True:
         if q_treated.empty():
             time.sleep(0)
         frame = q_treated.get()[0]
+        #fps
+        if count % 5 == 0:
+            end = time.time()
+            elapsed = end - start
+            fps = round(5 / elapsed)
+            start = end
         # Affichage
         frame = skimage.color.gray2rgb(frame)
         # resize pour affichage propre
         # concatene les deux images pour comparaison
-        if str(sys.argv[2]) == "-conc":
+        if str(sys.argv[2]) == "-conc": #temporaire
             frame = np.hstack((frame, skimage.color.gray2rgb(q_treated.get()[1])))
-        frame = cv.resize(frame, None, fx=0.6, fy=0.6, interpolation=cv.INTER_CUBIC)
+            frame = cv.resize(frame, None, fx=0.6, fy=0.6, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
         image = cv.putText(frame, 'Frame %d' % local_count, (5, 310), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
@@ -152,8 +162,14 @@ def display_t():
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
+        image = cv.putText(image, 'fps = %.2f' % fps, (5, 220),
+                           cv.FONT_HERSHEY_SIMPLEX, .5,
+                           (0, 0, 255), 1,
+                           cv.LINE_AA)
         # image = cv.putText(image, 'uniformity = %d' % round(q_treated.get()[1]), (5, 420), cv.FONT_HERSHEY_SIMPLEX,
         # .5, (0, 0, 255), 1, cv.LINE_AA) #show dans la fenêtre
+
+
         cv.imshow('comparison', image)
         local_count += 1
         # cv.imwrite('frames/test%d.png' % local_count, image)
