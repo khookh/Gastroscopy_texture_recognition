@@ -87,8 +87,7 @@ def read_flux():
             over = True
             break
         if retr is True:
-            if count % int(sys.argv[4]) == 0: #temporaire
-                q_frame.put(cv.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv.INTER_CUBIC))
+            q_frame.put(cv.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv.INTER_CUBIC))
             count += 1
         if over is True:
             cap.release()
@@ -115,7 +114,7 @@ def frame_treatment():
         wrap.blur_list = np.append(wrap.blur_list, unfy)
         wrap.w_check()
 
-        if unfy > 15 and wrap.p_capture is False:
+        if unfy > 15 and wrap.p_capture is False and count % int(sys.argv[4]) == 0: #temporaire:
             frame_treated = seg_hsv(frame)
             frame_treated = morph_trans(frame_treated)
             wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, dim) * 100, 3))
