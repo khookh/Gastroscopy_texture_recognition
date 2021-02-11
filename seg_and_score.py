@@ -145,10 +145,10 @@ def display_t():
             frame = np.hstack((frame, skimage.color.gray2rgb(q_treated.get()[1])))
         frame = cv.resize(frame, None, fx=0.6, fy=0.6, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
-        image = cv.putText(frame, 'Frame %d' % local_count, (5, 195), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
+        image = cv.putText(frame, 'Frame %d' % local_count, (5, 310), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 220),
+        image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 290),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
