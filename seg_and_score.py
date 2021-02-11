@@ -53,9 +53,6 @@ def uniformity(ima):
     return np.sum((blur1_uni - blur2_uni) ** 2)
 
 
-
-
-
 # lecture flux vidéo
 count = 1
 over = False
@@ -65,6 +62,7 @@ q_treated = queue.Queue()
 cap = cv.VideoCapture(str(sys.argv[1]))
 
 wrap = t_w.Wrap_(os.path.basename(str(sys.argv[1])))
+
 
 # Thread reading the video flux
 def read_flux():
@@ -109,7 +107,7 @@ def frame_treatment():
         wrap.blur_list = np.append(wrap.blur_list, unfy)
         wrap.w_check()
 
-        if unfy > 15:
+        if unfy > 15 and wrap.p_capture is False:
             frame_treated = seg_hsv(frame)
             frame_treated = morph_trans(frame_treated)
             wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, dim) * 100, 3))

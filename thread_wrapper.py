@@ -11,6 +11,7 @@ class Wrap_:
     sco = 0
     unfy = 0
     p_capture = False
+    count_b_p = 0
 
     # output into thefile the score of the section that has been processed
     def section_score(self):
@@ -45,19 +46,23 @@ class Wrap_:
         return False
 
     def w_check(self):
+        self.count_b_p += 1
         if self.p_capture is False and self.strict_eq():
             self.p_capture = True
-            self.save()
-        if self.p_capture is True and self.strict_diff():
-            self.p_capture = False
-            self.section_score()
+            if self.count_b_p > 240:
+                self.save()
+                self.section_score()
             self.temp_score_list = np.array([])
 
-    def output_f(self,count):
-        self.file.write("Mean score of whole video = %.2f \n" % np.mean(self.score_list))
+        if self.p_capture is True and self.strict_diff():
+            self.p_capture = False
+            self.count_b_p = 0
+
+    def output_f(self, count):
+        self.file.write("Mean score (frame-wise) of whole video = %.2f \n" % np.mean(self.score_list))
         self.file.write("(%.2f %% of the frame from the video were treated)" % (self.score_list.size * 100.0 / count))
         self.file.close()
 
     def __init__(self, filename):
         self.fileName = filename
-        self.file = open("output_%s.txt" % self.fileName, "w")
+        self.file = open("output_%s_.txt" % self.fileName, "w")
