@@ -114,12 +114,13 @@ def frame_treatment():
         wrap.blur_list = np.append(wrap.blur_list, unfy)
         wrap.w_check()
 
-        if unfy > 15 and wrap.p_capture is False and count % int(sys.argv[4]) == 0: #temporaire:
-            frame_treated = seg_hsv(frame)
-            frame_treated = morph_trans(frame_treated)
-            wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, dim) * 100, 3))
-        else:
-            wrap.save()
+        if local_count % int(sys.argv[4]) == 0:
+            if unfy > 15 and wrap.p_capture is False:
+                frame_treated = seg_hsv(frame)
+                frame_treated = morph_trans(frame_treated)
+                wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, dim) * 100, 3))
+            else:
+                wrap.save()
 
         if over is True:
             cv.destroyAllWindows()
