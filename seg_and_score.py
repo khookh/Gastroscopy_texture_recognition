@@ -59,16 +59,22 @@ over = False
 q_frame = queue.Queue()
 q_treated = queue.Queue()
 
-cap = cv.VideoCapture(str(sys.argv[1]))
-
-wrap = t_w.Wrap_(os.path.basename(str(sys.argv[1])))
+if str(sys.argv[3]) == "-usb":
+    cap = cv.VideoCapture(0)
+    wrap = t_w.Wrap_("output_hd")
+else:
+    cap = cv.VideoCapture(str(sys.argv[1]))
+    wrap = t_w.Wrap_(os.path.basename(str(sys.argv[1])))
 
 
 # Thread reading the video flux
 def read_flux():
     global count, over, cap
     while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
-        cap = cv.VideoCapture(str(sys.argv[1]))
+        if str(sys.argv[3]) == "-usb":
+            cap = cv.VideoCapture(0)
+        else:
+            cap = cv.VideoCapture(str(sys.argv[1]))
         cv.waitKey(500)
     while cap.isOpened():
         while q_frame.qsize() > 100:
@@ -119,7 +125,7 @@ def frame_treatment():
             wrap.save()
             wrap.section_score()
             break
-        q_treated.put(frame)
+        q_treated.put((frame,frame_treated))
         local_count += 1
 
 
@@ -130,17 +136,19 @@ def display_t():
     while True:
         if q_treated.empty():
             time.sleep(0)
-        frame = q_treated.get()  # [0]
+        frame = q_treated.get()[0]
         # Affichage
         frame = skimage.color.gray2rgb(frame)
         # resize pour affichage propre
         # concatene les deux images pour comparaison
-        # numpy_h_concat = np.hstack((frame, skimage.color.gray2rgb(q_treated.get()[1])))
+        if str(sys.argv[2]) == "-conc":
+            frame = np.hstack((frame, skimage.color.gray2rgb(q_treated.get()[1])))
+            frame = cv.resize(frame, None, fx=0.6, fy=0.6, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
-        image = cv.putText(frame, 'Frame %d' % local_count, (5, 370), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
+        image = cv.putText(frame, 'Frame %d' % local_count, (5, 195), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 400),
+        image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 220),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
