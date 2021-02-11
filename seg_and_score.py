@@ -143,7 +143,7 @@ def display_t():
         # concatene les deux images pour comparaison
         if str(sys.argv[2]) == "-conc":
             frame = np.hstack((frame, skimage.color.gray2rgb(q_treated.get()[1])))
-            frame = cv.resize(frame, None, fx=0.6, fy=0.6, interpolation=cv.INTER_CUBIC)
+        frame = cv.resize(frame, None, fx=0.6, fy=0.6, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
         image = cv.putText(frame, 'Frame %d' % local_count, (5, 195), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
