@@ -179,7 +179,8 @@ def display_t():
         image = cv.putText(frame, 'Frame %d' % local_count, (5, 310), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 290),
+        # image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 290),
+        image = cv.putText(image, 'dim = (%.2f,%2.f)' % (wrap.dim[0],wrap.dim[1]), (5, 290),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
