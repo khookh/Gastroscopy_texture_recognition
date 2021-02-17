@@ -86,7 +86,7 @@ def read_flux():
             print("read stop \n")
             break
         if retr:
-            q_frame.put(cv.resize(frame, None, fx=0.2, fy=0.2, interpolation=cv.INTER_CUBIC))
+            q_frame.put(cv.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv.INTER_CUBIC))
             count += 1
         else:
             cap.release()
