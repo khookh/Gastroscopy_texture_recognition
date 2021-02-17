@@ -7,6 +7,8 @@ class Wrap_:
     score_list = np.array([])
     temp_score_list = np.array([])
     section_score_list = np.array([])
+    fps_list = np.array([])
+    dim = (0, 0)
     section = 1
     sco = 0
     unfy = 0
@@ -60,6 +62,8 @@ class Wrap_:
 
     def output_f(self, count):
         self.file.write("Mean score (frame-wise) of whole video = %.2f \n" % np.mean(self.score_list))
+        self.file.write("Average fps = %.2f \n" % np.mean(self.fps_list))
+        self.file.write("Dimension of the video (treatment) = %f x %f \n" % (self.dim[0], self.dim[1]))
         self.file.write("(%.2f %% of the frame from the video were treated)" % (self.score_list.size * 100.0 / count))
         self.file.close()
 
