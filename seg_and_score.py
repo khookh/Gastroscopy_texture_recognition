@@ -11,11 +11,13 @@ import sys
 import os
 import thread_wrapper as t_w
 import time
+import methods as meth
 
 
 # segmentation (HSV)
 def seg_hsv(img):
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+    meth.display_hist(img,count)
     h, s, v = cv.split(img)
     # temp seg masks
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
@@ -33,7 +35,7 @@ def score(ima, _dim):
     return scoring
 
 
-kernel = np.ones((5, 5), np.uint8)
+kernel = np.ones((7, 7), np.uint8)
 kernelb = np.ones((3, 3), np.uint8)
 
 
@@ -49,7 +51,7 @@ def morph_trans(ima):
 
 # returns the uniformity of the image
 def uniformity(ima):
-    blur1_uni = cv.GaussianBlur(ima, (7, 7), 1)
+    blur1_uni = cv.GaussianBlur(ima, (5, 5), 1)
     blur2_uni = cv.GaussianBlur(ima, (31, 31), 2)
     return np.sum((blur1_uni - blur2_uni) ** 2)
 
@@ -86,7 +88,7 @@ def read_flux():
             print("read stop \n")
             break
         if retr:
-            q_frame.put(cv.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv.INTER_CUBIC))
+            q_frame.put(cv.resize(frame, None, fx=0.2, fy=0.2, interpolation=cv.INTER_CUBIC))
             count += 1
         else:
             cap.release()
@@ -137,7 +139,7 @@ def frame_treatment():
                 wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, dim) * 100, 3))
             else:
                 wrap.save()
-        q_treated.put((frame, frame_treated,unfy))
+        q_treated.put((frame, frame_treated))
         local_count += 1
 
 
@@ -174,13 +176,13 @@ def display_t():
         # concatene les deux images pour comparaison
         if str(sys.argv[2]) == "-conc":  # temporaire
             frame = np.hstack((frame, skimage.color.gray2rgb(q_treated.get()[1])))
-            # frame = cv.resize(frame, None, fx=0.6, fy=0.6, interpolation=cv.INTER_CUBIC)
+            frame = cv.resize(frame, None, fx=1.2, fy=1.2, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
         image = cv.putText(frame, 'Frame %d' % local_count, (5, 310), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
                            cv.LINE_AA)
         # image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 290),
-        image = cv.putText(image, 'dim = (%.2f,%2.f)' % (wrap.dim[0],wrap.dim[1]), (5, 290),
+        image = cv.putText(image, 'dim = (%.2f,%2.f)' % (wrap.dim[0],wrap.dim[1]), (5, 100),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
@@ -188,12 +190,11 @@ def display_t():
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'uniformity = %d' % round(q_treated.get()[2]), (5, 150), cv.FONT_HERSHEY_SIMPLEX,
-         .5, (0, 0, 255), 1, cv.LINE_AA) #show dans la fenêtre
 
-        cv.imshow('comparison', image)
+
+        #cv.imshow('comparison', image)
         local_count += 1
-        # cv.imwrite('frames/test%d.png' % local_count, image)
+        cv.imwrite('frames/frame%d.png' % local_count, image)
 
 
 thread_fetch = Thread(target=read_flux)

@@ -15,7 +15,7 @@ def norm_hist(ima):
     # return 1. * hist / np.sum(hist)  # normalized histogram
 
 
-def display_hist(ima, vmin=None, vmax=None):
+def display_hist(ima, count, vmin=None, vmax=None):
     figure = plt.figure(figsize=[10, 5])
     if ima.ndim == 2:
         nh = norm_hist(ima)
@@ -30,14 +30,16 @@ def display_hist(ima, vmin=None, vmax=None):
     if ima.ndim == 2:
         plt.plot(nh, label='hist.')
     else:
-        plt.plot(nh_r, color='r', label='r')
-        plt.plot(nh_g, color='g', label='g')
-        plt.plot(nh_b, color='b', label='b')
+        plt.plot(nh_r, color='r', label='h')
+        plt.plot(nh_g, color='g', label='s')
+        plt.plot(nh_b, color='b', label='v')
         plt.savefig('hist.png')
     plt.legend()
-    plt.xlabel('gray level');
+    plt.xlabel('hsv levels');
+    plt.savefig('frames/hist_hsv%d.png' % count, dpi=figure.dpi)
     # plt.show()
-    return plt
+    plt.close()
+    #return plt
 
 
 def apply_lut(ima, lut, vmin=None, vmax=None):
@@ -98,6 +100,7 @@ def seg_his(ima, path):
     # viewer.show()
     cv.imwrite(path, sel)
     return sel
+
 
 def _entropy(img):
     p = np.array([(img == v).sum() for v in range(256)])
