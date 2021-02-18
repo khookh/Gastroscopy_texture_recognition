@@ -15,7 +15,6 @@ import treat_process as t_p
 import methods as meth
 
 
-
 # renvoie un score de qualité à partir de l'image binaire
 def score(ima, _dim):
     scoring = 0
@@ -98,6 +97,11 @@ def frame_treatment():
             else:
                 q_to_treat.put((frame, frame_treated, False))
         local_count += 1
+        while q_treated.empty() is False: #pour assurer la synchro lors du save(), temp
+            if over:
+                break
+            time.sleep(0)
+
     wrap.save()
     wrap.section_score()
     wrap.output_f(count)
@@ -172,12 +176,11 @@ if __name__ == '__main__':
     thread_fetch.start()
     thread_treatment.start()
     thread_display.start()
-    treat_proc= Process(target=t_p.process, args=(q_to_treat, q_treated,))
+    treat_proc = Process(target=t_p.process, args=(q_to_treat, q_treated,))
     treat_proc.daemon = True
     treat_proc.start()
     thread_treatment.join()
     treat_proc.kill()
-
 
 # thread treatment stops when either the display or the fetch has stopped
 # TODO : refactor thread managing -> multiprocessing ?
