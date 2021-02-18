@@ -6,24 +6,14 @@ import skimage.viewer
 import cv2 as cv
 import queue
 from threading import Thread
-import time
+from multiprocessing import Process, Queue
 import sys
 import os
 import thread_wrapper as t_w
 import time
+import treat_process as t_p
 import methods as meth
 
-
-# segmentation (HSV)
-def seg_hsv(img):
-    img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-    #meth.display_hist(img,count)
-    h, s, v = cv.split(img)
-    # temp seg masks
-    mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
-    mask2 = cv.inRange(img, (0, 0, 90), (30, 95, 170))  # low light foam
-    return mask + mask2
-    # return cv.bitwise_and(img, img, mask=mask)
 
 
 # renvoie un score de qualité à partir de l'image binaire
@@ -31,22 +21,12 @@ def score(ima, _dim):
     scoring = 0
     bad_pixels = cv.findNonZero(ima)
     if bad_pixels is not None:
-        scoring = bad_pixels.shape[0] / (4 * _dim[0] * _dim[1])
+        scoring = bad_pixels.shape[0] / (_dim[0] * _dim[1])
     return scoring
 
 
 kernel = np.ones((7, 7), np.uint8)
 kernelb = np.ones((3, 3), np.uint8)
-
-
-# applique les transpho morphologiques à l'image
-def morph_trans(ima):
-    global kernel, kernelb
-    ima = cv.morphologyEx(ima, cv.MORPH_CLOSE, kernel)  # clustering
-    ima = cv.morphologyEx(ima, cv.MORPH_OPEN, kernelb)  # denoise
-    ima = cv.morphologyEx(ima, cv.MORPH_OPEN, kernel)  # denoise
-    # ima = cv.dilate(ima, np.ones((5, 5), np.uint8), iterations=1)
-    return ima
 
 
 # returns the uniformity of the image
@@ -59,8 +39,10 @@ def uniformity(ima):
 # lecture flux vidéo
 count = 1
 over = False
-q_frame = queue.Queue()
-q_treated = queue.Queue()
+q_frame = queue.Queue()  # thread
+
+q_to_treat = Queue()  # process
+q_treated = Queue()  # process
 
 if str(sys.argv[3]) == "-usb":  # temporaire
     cap = cv.VideoCapture(0)
@@ -96,7 +78,6 @@ def read_flux():
 def frame_treatment():
     global count, wrap, over
     local_count = 1
-    dim = (0, 0)
     while over is False:
         if q_frame.empty():
             time.sleep(0)
@@ -104,23 +85,18 @@ def frame_treatment():
         if local_count == 1:
             dimensions = frame.shape
             wrap.dim = dimensions  # temp
-            centrex, centrey = dimensions[1] / 2, dimensions[0] / 2
-            dim = (int(centrex), int(centrey))
             frame_treated = np.zeros(dimensions)
 
         # uniformity
-        unfy = uniformity(frame) / (dim[0] * dim[1] * 4)
+        unfy = uniformity(frame) / (wrap.dim[0] * wrap.dim[1])
         wrap.blur_list = np.append(wrap.blur_list, unfy)
         wrap.w_check()
 
         if local_count % int(sys.argv[4]) == 0:
             if unfy > 22 and wrap.p_capture is False:
-                frame_treated = seg_hsv(frame)
-                frame_treated = morph_trans(frame_treated)
-                wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, dim) * 100, 3))
+                q_to_treat.put((frame, frame_treated, True))
             else:
-                wrap.save()
-        q_treated.put((frame, frame_treated))
+                q_to_treat.put((frame, frame_treated, False))
         local_count += 1
     wrap.save()
     wrap.section_score()
@@ -129,7 +105,7 @@ def frame_treatment():
 
 # Thread displaying the frames
 def display_t():
-    global wrap, over
+    global wrap, over, dim
     local_count = 1
     start = time.time()
     fps = 0
@@ -145,7 +121,14 @@ def display_t():
             if over:
                 break
             time.sleep(0)
-        frame = q_treated.get()[0]
+
+        source = q_treated.get()
+        frame = source[0]
+        frame_treated = source[1]
+        if source[2]:
+            wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, wrap.dim) * 100, 3))
+        else:
+            wrap.save()
         # fps
         if local_count % 40 == 0:
             end = time.time()
@@ -167,7 +150,7 @@ def display_t():
                            1,
                            cv.LINE_AA)
         # image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 290),
-        image = cv.putText(image, 'dim = (%.2f,%2.f)' % (wrap.dim[0],wrap.dim[1]), (5, 100),
+        image = cv.putText(image, 'dim = (%.2f,%2.f)' % (wrap.dim[0], wrap.dim[1]), (5, 100),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
@@ -176,20 +159,26 @@ def display_t():
                            (0, 0, 255), 1,
                            cv.LINE_AA)
 
-
         cv.imshow('comparison', image)
         local_count += 1
-        #cv.imwrite('frames/frame%d.png' % local_count, image)
+        # cv.imwrite('frames/frame%d.png' % local_count, image)
     cv.destroyAllWindows()
 
 
-thread_fetch = Thread(target=read_flux)
-thread_treatment = Thread(target=frame_treatment)
-thread_display = Thread(target=display_t)
-thread_fetch.start()
-thread_treatment.start()
-thread_display.start()
+if __name__ == '__main__':
+    thread_fetch = Thread(target=read_flux)
+    thread_treatment = Thread(target=frame_treatment)
+    thread_display = Thread(target=display_t)
+    thread_fetch.start()
+    thread_treatment.start()
+    thread_display.start()
+    treat_proc= Process(target=t_p.process, args=(q_to_treat, q_treated,))
+    treat_proc.daemon = True
+    treat_proc.start()
+    thread_treatment.join()
+    treat_proc.kill()
+
+
 # thread treatment stops when either the display or the fetch has stopped
 # TODO : refactor thread managing -> multiprocessing ?
 # TODO : delelete unecessary calls
-
