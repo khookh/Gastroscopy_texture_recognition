@@ -17,7 +17,7 @@ import methods as meth
 # segmentation (HSV)
 def seg_hsv(img):
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-    meth.display_hist(img,count)
+    #meth.display_hist(img,count)
     h, s, v = cv.split(img)
     # temp seg masks
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
@@ -72,53 +72,33 @@ else:
 
 # Thread reading the video flux
 def read_flux():
-    global count, over, cap
+    global count, cap, over
     while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
         if str(sys.argv[3]) == "-usb":
             cap = cv.VideoCapture(0)
         else:
             cap = cv.VideoCapture(str(sys.argv[1]))
         cv.waitKey(500)
-    while True:
-        retr, frame = cap.read()
-        if over is True:
-            cap.release()
-            cv.destroyAllWindows()
-            over = True
-            print("read stop \n")
-            break
-        if retr:
+    while over is False:
+        ret, frame = cap.read()
+        if ret:
             q_frame.put(cv.resize(frame, None, fx=0.2, fy=0.2, interpolation=cv.INTER_CUBIC))
             count += 1
         else:
-            cap.release()
-            cv.destroyAllWindows()
             over = True
             break
         if q_frame.qsize() > 100:
             time.sleep(0)
-
     cap.release()
-    cv.destroyAllWindows()
-    over = True
-
-    print("read stop \n")
 
 
 # thread treating the frames
 def frame_treatment():
-    global count, over, wrap
+    global count, wrap, over
     local_count = 1
     dim = (0, 0)
-    while True:
-        if over is True:
-            cv.destroyAllWindows()
-            wrap.save()
-            wrap.section_score()
-            wrap.output_f(count)
-            print("treatment stop \n")
-            break
-        if q_frame.empty() and over is False:
+    while over is False:
+        if q_frame.empty():
             time.sleep(0)
         frame = q_frame.get()
         if local_count == 1:
@@ -127,6 +107,7 @@ def frame_treatment():
             centrex, centrey = dimensions[1] / 2, dimensions[0] / 2
             dim = (int(centrex), int(centrey))
             frame_treated = np.zeros(dimensions)
+
         # uniformity
         unfy = uniformity(frame) / (dim[0] * dim[1] * 4)
         wrap.blur_list = np.append(wrap.blur_list, unfy)
@@ -141,26 +122,28 @@ def frame_treatment():
                 wrap.save()
         q_treated.put((frame, frame_treated))
         local_count += 1
+    wrap.save()
+    wrap.section_score()
+    wrap.output_f(count)
 
 
 # Thread displaying the frames
 def display_t():
-    global wrap, count, over
+    global wrap, over
     local_count = 1
     start = time.time()
     fps = 0
-    while True:
+    while over is False:
         k = cv.waitKey(1) & 0xFF
         if k == ord('p'):
             while True:
                 if cv.waitKey(1) & 0xFF == ord('s'):
                     break
-        if k == ord('q') or over is True:
+        if k == ord('q'):
             over = True
-            cv.destroyAllWindows()
-            print("disp stop \n")
-            break
         if q_treated.empty():
+            if over:
+                break
             time.sleep(0)
         frame = q_treated.get()[0]
         # fps
@@ -175,8 +158,10 @@ def display_t():
         # resize pour affichage propre
         # concatene les deux images pour comparaison
         if str(sys.argv[2]) == "-conc":  # temporaire
-            frame = np.hstack((frame, skimage.color.gray2rgb(q_treated.get()[1])))
-            frame = cv.resize(frame, None, fx=1.2, fy=1.2, interpolation=cv.INTER_CUBIC)
+            if q_treated.get()[1] is None:
+                break
+            frame = np.hstack((frame, cv.cvtColor(q_treated.get()[1], cv.COLOR_GRAY2BGR)))
+        frame = cv.resize(frame, None, fx=1.2, fy=1.2, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
         image = cv.putText(frame, 'Frame %d' % local_count, (5, 310), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
@@ -192,9 +177,10 @@ def display_t():
                            cv.LINE_AA)
 
 
-        #cv.imshow('comparison', image)
+        cv.imshow('comparison', image)
         local_count += 1
-        cv.imwrite('frames/frame%d.png' % local_count, image)
+        #cv.imwrite('frames/frame%d.png' % local_count, image)
+    cv.destroyAllWindows()
 
 
 thread_fetch = Thread(target=read_flux)
@@ -204,7 +190,6 @@ thread_fetch.start()
 thread_treatment.start()
 thread_display.start()
 # thread treatment stops when either the display or the fetch has stopped
-
-
-# TODO : refactor thread managing
+# TODO : refactor thread managing -> multiprocessing ?
 # TODO : delelete unecessary calls
+
