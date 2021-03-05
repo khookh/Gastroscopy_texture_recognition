@@ -56,10 +56,11 @@ def read_flux():
     global count, cap, over
     while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
         if str(sys.argv[3]) == "-usb":
-            cap = cv.VideoCapture(0)
+            cap = cv.VideoCapture(0);
         else:
-            cap = cv.VideoCapture(str(sys.argv[1]))
+            cap = cv.VideoCapture(str(sys.argv[1]));
         cv.waitKey(500)
+        print("wait")
     while over is False:
         ret, frame = cap.read()
         if ret:
@@ -88,7 +89,7 @@ def frame_treatment():
 
         # uniformity
         unfy = uniformity(frame) / (wrap.dim[0] * wrap.dim[1])
-        wrap.blur_list = np.append(wrap.blur_list, unfy)
+        wrap.uniformity_list = np.append(wrap.uniformity_list, unfy)
         wrap.w_check()
 
         if local_count % int(sys.argv[4]) == 0:
@@ -121,6 +122,8 @@ def display_t():
                     break
         if k == ord('q'):
             over = True
+        if k == ord('a'):
+            wrap.ss_temp();
         if q_treated.empty():
             if over:
                 break

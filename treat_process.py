@@ -1,4 +1,3 @@
-from multiprocessing import Process, Queue
 import cv2 as cv
 import numpy as np
 
@@ -7,7 +6,7 @@ import numpy as np
 def seg_hsv(img):
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     # meth.display_hist(img,count)
-    h, s, v = cv.split(img)
+    #h, s, v = cv.split(img)
     # temp seg masks
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
     mask2 = cv.inRange(img, (0, 0, 90), (30, 95, 170))  # low light foam
