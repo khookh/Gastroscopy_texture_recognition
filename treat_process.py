@@ -3,16 +3,17 @@ import numpy as np
 import methods as meth
 
 to = False  # global
+meansat = 0  # temp
 
 
 # segmentation (HSV)
 def seg_hsv(img):
-    global to
+    global to, meansat
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     # meth.display_hist(img,count)
     h, s, v = cv.split(img)
-    if np.mean(h) > 30:
-        print(np.mean(h))
+    meansat = np.mean(s)
+    if np.mean(h) > 30 or np.mean(s) < 40:  # bri
         to = False
     # temp seg masks
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
@@ -36,7 +37,7 @@ def morph_trans(ima):
 
 
 def process(q_to, q_has):
-    global to
+    global to, meansat
     while True:
         get = q_to.get()
         frame = get[0]
@@ -45,4 +46,4 @@ def process(q_to, q_has):
         if to:
             frame_treated = seg_hsv(frame)
             frame_treated = morph_trans(frame_treated)
-        q_has.put((frame, frame_treated, to))
+        q_has.put((frame, frame_treated, to, get[3], get[4], meansat))

@@ -37,7 +37,6 @@ def uniformity(ima):
 count = 1
 over = False
 q_frame = Queue()  # thread
-
 q_to_treat = Queue()  # process
 q_treated = Queue()  # process
 
@@ -69,7 +68,7 @@ def read_flux():
             q_frame.put(cv.resize(frame, None, fx=1 / ratio, fy=1 / ratio, interpolation=cv.INTER_CUBIC))
             count += 1
         else:
-            # over = True
+            over = True
             break
         if q_frame.qsize() > 100:
             time.sleep(0)
@@ -88,16 +87,18 @@ def frame_treatment():
         if local_count == 1:
             wrap.dim = frame.shape
             frame_treated = np.zeros(wrap.dim)
+        # blur
+        blur = cv.Laplacian(frame, cv.CV_32F).var()
         # uniformity
         unfy = uniformity(frame) / (wrap.dim[0] * wrap.dim[1])
         wrap.uniformity_list = np.append(wrap.uniformity_list, unfy)
         wrap.w_check()
 
         if local_count % int(sys.argv[4]) == 0:
-            if unfy > 15 and wrap.p_capture is False:
-                q_to_treat.put((frame, frame_treated, True))
+            if unfy > 14 and blur > 1000 and wrap.p_capture is False:
+                q_to_treat.put((frame, frame_treated, True, blur, unfy))  # blur and unfy for debug
             else:
-                q_to_treat.put((frame, frame_treated, False))
+                q_to_treat.put((frame, frame_treated, False, blur, unfy))  # blur and unfy for debug
         local_count += 1
         while q_treated.empty() is False:  # pour assurer la synchro lors du save(), temp
             if over:
@@ -116,7 +117,7 @@ def display_t():
     start = time.time()
     fps = 0
     while over is False:
-        k = cv.waitKey(14) & 0xFF
+        k = cv.waitKey(1) & 0xFF
         if k == ord('p'):
             while True:
                 if cv.waitKey(1) & 0xFF == ord('s'):
@@ -160,7 +161,15 @@ def display_t():
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'dim = (%.2f,%2.f)' % (wrap.dim[0], wrap.dim[1]), (5, 100),
+        image = cv.putText(image, 'blur = %.2f' % source[3], (5, 100),
+                           cv.FONT_HERSHEY_SIMPLEX, .5,
+                           (0, 0, 255), 1,
+                           cv.LINE_AA)
+        image = cv.putText(image, 'mean sat = %.2f' % source[5], (5, 60),
+                           cv.FONT_HERSHEY_SIMPLEX, .5,
+                           (0, 0, 255), 1,
+                           cv.LINE_AA)
+        image = cv.putText(image, 'unfy = %.2f' % source[4], (5, 80),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
@@ -170,8 +179,8 @@ def display_t():
                            cv.LINE_AA)
 
         cv.imshow('comparison', image)
+        # cv.imwrite('frames/test%d.png' % local_count, image)
         local_count += 1
-        # cv.imwrite('frames/frame%d.png' % local_count, image)
     cv.destroyAllWindows()
 
 

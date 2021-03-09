@@ -32,7 +32,7 @@ class Wrap_:
 
     # Return True if the 6 previous frames are strictly different
     def strict_diff(self):
-        if self.uniformity_list.size > 9:
+        if self.uniformity_list.size > 6:
             for i in range(6):
                 if self.uniformity_list[-1 - i] == self.uniformity_list[-1 - i - 1]:
                     return False
@@ -58,7 +58,6 @@ class Wrap_:
             self.temp_score_list = np.array([])
 
         if self.p_capture is True and self.strict_diff():
-            print("take")
             self.p_capture = False
             self.count_b_p = 0
 
