@@ -1,12 +1,19 @@
 import cv2 as cv
 import numpy as np
+import methods as meth
+
+to = False  # global
 
 
 # segmentation (HSV)
 def seg_hsv(img):
+    global to
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     # meth.display_hist(img,count)
-    #h, s, v = cv.split(img)
+    h, s, v = cv.split(img)
+    if np.mean(h) > 30:
+        print(np.mean(h))
+        to = False
     # temp seg masks
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
     mask2 = cv.inRange(img, (0, 0, 90), (30, 95, 170))  # low light foam
@@ -29,11 +36,13 @@ def morph_trans(ima):
 
 
 def process(q_to, q_has):
+    global to
     while True:
         get = q_to.get()
         frame = get[0]
         frame_treated = get[1]
-        if get[2]:
+        to = get[2]
+        if to:
             frame_treated = seg_hsv(frame)
             frame_treated = morph_trans(frame_treated)
-        q_has.put((frame, frame_treated, get[2]))
+        q_has.put((frame, frame_treated, to))

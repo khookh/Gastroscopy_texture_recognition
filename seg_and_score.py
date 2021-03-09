@@ -4,7 +4,6 @@ import numpy as np
 import skimage.color
 import skimage.viewer
 import cv2 as cv
-import queue
 from threading import Thread
 from multiprocessing import Process, Queue
 import sys
@@ -12,7 +11,6 @@ import os
 import thread_wrapper as t_w
 import time
 import treat_process as t_p
-import methods as meth
 
 
 # renvoie un score de qualité à partir de l'image binaire
@@ -38,7 +36,7 @@ def uniformity(ima):
 # lecture flux vidéo
 count = 1
 over = False
-q_frame = queue.Queue()  # thread
+q_frame = Queue()  # thread
 
 q_to_treat = Queue()  # process
 q_treated = Queue()  # process
@@ -54,6 +52,7 @@ else:
 # Thread reading the video flux
 def read_flux():
     global count, cap, over
+    ratio = 1
     while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
         if str(sys.argv[3]) == "-usb":
             cap = cv.VideoCapture(0);
@@ -64,10 +63,13 @@ def read_flux():
     while over is False:
         ret, frame = cap.read()
         if ret:
-            q_frame.put(cv.resize(frame, None, fx=0.2, fy=0.2, interpolation=cv.INTER_CUBIC))
+            if count == 1:
+                ratio = round(frame.shape[0] / 216, 2)
+                print(ratio)
+            q_frame.put(cv.resize(frame, None, fx=1 / ratio, fy=1 / ratio, interpolation=cv.INTER_CUBIC))
             count += 1
         else:
-            over = True
+            # over = True
             break
         if q_frame.qsize() > 100:
             time.sleep(0)
@@ -78,27 +80,26 @@ def read_flux():
 def frame_treatment():
     global count, wrap, over
     local_count = 1
+    frame_treated = np.zeros([216, 384, 3])
     while over is False:
         if q_frame.empty():
             time.sleep(0)
         frame = q_frame.get()
         if local_count == 1:
-            dimensions = frame.shape
-            wrap.dim = dimensions  # temp
-            frame_treated = np.zeros(dimensions)
-
+            wrap.dim = frame.shape
+            frame_treated = np.zeros(wrap.dim)
         # uniformity
         unfy = uniformity(frame) / (wrap.dim[0] * wrap.dim[1])
         wrap.uniformity_list = np.append(wrap.uniformity_list, unfy)
         wrap.w_check()
 
         if local_count % int(sys.argv[4]) == 0:
-            if unfy > 22 and wrap.p_capture is False:
+            if unfy > 15 and wrap.p_capture is False:
                 q_to_treat.put((frame, frame_treated, True))
             else:
                 q_to_treat.put((frame, frame_treated, False))
         local_count += 1
-        while q_treated.empty() is False: #pour assurer la synchro lors du save(), temp
+        while q_treated.empty() is False:  # pour assurer la synchro lors du save(), temp
             if over:
                 break
             time.sleep(0)
@@ -115,7 +116,7 @@ def display_t():
     start = time.time()
     fps = 0
     while over is False:
-        k = cv.waitKey(1) & 0xFF
+        k = cv.waitKey(14) & 0xFF
         if k == ord('p'):
             while True:
                 if cv.waitKey(1) & 0xFF == ord('s'):
@@ -123,7 +124,7 @@ def display_t():
         if k == ord('q'):
             over = True
         if k == ord('a'):
-            wrap.ss_temp();
+            wrap.ss_temp()
         if q_treated.empty():
             if over:
                 break
@@ -148,15 +149,17 @@ def display_t():
         # resize pour affichage propre
         # concatene les deux images pour comparaison
         if str(sys.argv[2]) == "-conc":  # temporaire
-            if q_treated.get()[1] is None:
-                break
-            frame = np.hstack((frame, cv.cvtColor(q_treated.get()[1], cv.COLOR_GRAY2BGR)))
-        frame = cv.resize(frame, None, fx=1.2, fy=1.2, interpolation=cv.INTER_CUBIC)
+            if len(frame_treated.shape) == 2:
+                frame = np.hstack((frame, cv.cvtColor(frame_treated, cv.COLOR_GRAY2RGB)))
+        frame = cv.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
-        image = cv.putText(frame, 'Frame %d' % local_count, (5, 310), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
+        image = cv.putText(frame, 'Frame %d' % local_count, (5, 170), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
                            cv.LINE_AA)
-        # image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 290),
+        image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 130),
+                           cv.FONT_HERSHEY_SIMPLEX, .5,
+                           (0, 0, 255), 1,
+                           cv.LINE_AA)
         image = cv.putText(image, 'dim = (%.2f,%2.f)' % (wrap.dim[0], wrap.dim[1]), (5, 100),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
