@@ -98,7 +98,7 @@ def frame_treatment():
             if unfy > 14 and blur > 1000 and wrap.p_capture is False:
                 q_to_treat.put((frame, frame_treated, True, blur, unfy))  # blur and unfy for debug
             else:
-                q_to_treat.put((frame, frame_treated, False, blur, unfy))  # blur and unfy for debug
+                q_to_treat.put((frame,  np.zeros([216, 384, 3]), False, blur, unfy))  # blur and unfy for debug
         local_count += 1
         while q_treated.empty() is False:  # pour assurer la synchro lors du save(), temp
             if over:
@@ -154,7 +154,7 @@ def display_t():
                 frame = np.hstack((frame, cv.cvtColor(frame_treated, cv.COLOR_GRAY2RGB)))
         frame = cv.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
-        image = cv.putText(frame, 'Frame %d' % local_count, (5, 170), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
+        image = cv.putText(frame, 'Frame %d , %s' % (local_count,source[2]), (5, 170), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
                            1,
                            cv.LINE_AA)
         image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 130),
