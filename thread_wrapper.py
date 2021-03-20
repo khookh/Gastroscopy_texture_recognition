@@ -1,4 +1,6 @@
 import numpy as np
+import tensorflow as tf
+import cv2 as cv
 
 
 # class managing the score outputing and sequencing
@@ -14,6 +16,22 @@ class Wrap_:
     unfy = 0
     p_capture = False
     count_b_p = 0
+
+    dnnmodel = tf.keras.models.load_model("./model.h5")
+    # model trained on kaggle with kvasir dataset
+    dnnmodel.compile(
+        optimizer='adam',
+        loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=['accuracy'])
+    class_n = ['pylorus', 'retroflex-stomach', 'z-line']
+
+    def predict(self, img):
+        img = cv.resize(img, (160, 160))
+        img = np.reshape(img, [1, 160, 160, 3])
+        prediction = self.dnnmodel.predict(img)
+        index = np.argmax(prediction[0])
+        print(prediction[0])
+        return self.class_n[index]
 
     # output into the file the score of the section that has been processed
     def section_score(self):
@@ -48,13 +66,15 @@ class Wrap_:
             return True
         return False
 
-    def w_check(self):
+    # Check if the pictures taken aren't too close apart # TODO : implement image detection
+    def w_check(self,frame):
         self.count_b_p += 1
         if self.p_capture is False and self.strict_eq():
             self.p_capture = True
             if self.count_b_p > 100:
                 self.save()
-                #self.section_score()
+                print(self.predict(frame))
+                # self.section_score()
             self.temp_score_list = np.array([])
 
         if self.p_capture is True and self.strict_diff():

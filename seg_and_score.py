@@ -87,18 +87,16 @@ def frame_treatment():
         if local_count == 1:
             wrap.dim = frame.shape
             frame_treated = np.zeros(wrap.dim)
-        # blur
-        blur = cv.Laplacian(frame, cv.CV_32F).var()
         # uniformity
         unfy = uniformity(frame) / (wrap.dim[0] * wrap.dim[1])
         wrap.uniformity_list = np.append(wrap.uniformity_list, unfy)
-        wrap.w_check()
+        wrap.w_check(frame)
 
         if local_count % int(sys.argv[4]) == 0:
-            if unfy > 14 and blur > 1000 and wrap.p_capture is False:
-                q_to_treat.put((frame, frame_treated, True, blur, unfy))  # blur and unfy for debug
+            if unfy > 22 and wrap.p_capture is False:
+                q_to_treat.put((frame, frame_treated, True, unfy))  # blur and unfy for debug
             else:
-                q_to_treat.put((frame,  np.zeros([216, 384, 3]), False, blur, unfy))  # blur and unfy for debug
+                q_to_treat.put((frame, np.zeros([216, 384, 3]), False, unfy))  # blur and unfy for debug
         local_count += 1
         while q_treated.empty() is False:  # pour assurer la synchro lors du save(), temp
             if over:
@@ -154,22 +152,19 @@ def display_t():
                 frame = np.hstack((frame, cv.cvtColor(frame_treated, cv.COLOR_GRAY2RGB)))
         frame = cv.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
-        image = cv.putText(frame, 'Frame %d , %s' % (local_count,source[2]), (5, 170), cv.FONT_HERSHEY_SIMPLEX, .4, (0, 0, 255),
+        image = cv.putText(frame, 'Frame %d , %s' % (local_count, source[2]), (5, 170), cv.FONT_HERSHEY_SIMPLEX, .4,
+                           (0, 0, 255),
                            1,
                            cv.LINE_AA)
         image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 130),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'blur = %.2f' % source[3], (5, 100),
+        image = cv.putText(image, 'mean sat = %.2f' % source[4], (5, 60),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'mean sat = %.2f' % source[5], (5, 60),
-                           cv.FONT_HERSHEY_SIMPLEX, .5,
-                           (0, 0, 255), 1,
-                           cv.LINE_AA)
-        image = cv.putText(image, 'unfy = %.2f' % source[4], (5, 80),
+        image = cv.putText(image, 'unfy = %.2f' % source[3], (5, 80),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
