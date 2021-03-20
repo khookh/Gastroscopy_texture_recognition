@@ -54,14 +54,16 @@ def read_flux():
     ratio = 1
     while not cap.isOpened():  # attente active en cas de lecture de flux en real-time, on attend le header
         if str(sys.argv[3]) == "-usb":
-            cap = cv.VideoCapture(0);
+            cap = cv.VideoCapture(0)
         else:
-            cap = cv.VideoCapture(str(sys.argv[1]));
+            cap = cv.VideoCapture(str(sys.argv[1]))
         cv.waitKey(500)
         print("wait")
     while over is False:
         ret, frame = cap.read()
-        if ret:
+        if q_frame.qsize() > 100:
+            time.sleep(0)
+        elif ret:
             if count == 1:
                 ratio = round(frame.shape[0] / 216, 2)
                 print(ratio)
@@ -70,8 +72,7 @@ def read_flux():
         else:
             over = True
             break
-        if q_frame.qsize() > 100:
-            time.sleep(0)
+
     cap.release()
 
 
@@ -80,8 +81,10 @@ def frame_treatment():
     global count, wrap, over
     local_count = 1
     frame_treated = np.zeros([216, 384, 3])
-    while over is False:
+    while True:
         if q_frame.empty():
+            if over is True:
+                break
             time.sleep(0)
         frame = q_frame.get()
         if local_count == 1:
@@ -114,7 +117,7 @@ def display_t():
     local_count = 1
     start = time.time()
     fps = 0
-    while over is False:
+    while True:
         k = cv.waitKey(1) & 0xFF
         if k == ord('p'):
             while True:
@@ -122,10 +125,11 @@ def display_t():
                     break
         if k == ord('q'):
             over = True
+            break
         if k == ord('a'):
             wrap.ss_temp()
         if q_treated.empty():
-            if over:
+            if over and q_frame.empty():
                 break
             time.sleep(0)
 
