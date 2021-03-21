@@ -126,8 +126,6 @@ def display_t():
         if k == ord('q'):
             over = True
             break
-        if k == ord('a'):
-            wrap.ss_temp()
         if q_treated.empty():
             if over and q_frame.empty():
                 break

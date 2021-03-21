@@ -17,7 +17,7 @@ def seg_hsv(img):
         to = False
     # temp seg masks
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
-    mask2 = cv.inRange(img, (0, 0, 90), (30, 95, 170))  # low light foam
+    mask2 = cv.inRange(img, (0, 0, 90), (30, 70, 170))  # low light foam
     return mask + mask2
     # return cv.bitwise_and(img, img, mask=mask)
 
