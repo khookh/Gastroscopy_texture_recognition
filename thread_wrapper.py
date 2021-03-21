@@ -25,7 +25,27 @@ class Wrap_:
         metrics=['accuracy'])
     class_n = ['pylorus', 'retroflex-stomach', 'z-line']
 
+    def crop(self, img):
+        size = img.shape
+        h, s, v = cv.split(img)
+        x1 = 1
+        x2 = size[1] - 1
+        y1 = 1
+        y2 = size[0] - 1
+        while v[int(size[0] / 2), x1] < 15:
+            x1 += 5
+        while v[int(size[0] / 2), x2] < 15:
+            x2 -= 5
+        while v[y1, int(size[1] / 2)] < 15:
+            y1 += 5
+        while v[y2, int(size[1] / 2)] < 15:
+            y2 -= 5
+        return img[y1:y2, x1:x2]
+
     def predict(self, img):
+        img = self.crop(img)
+        cv.imshow('testcrop', img) #debug
+        cv.waitKey(1) #debug
         img = cv.resize(img, (160, 160))
         img = np.reshape(img, [1, 160, 160, 3])
         prediction = self.dnnmodel.predict(img)
@@ -67,7 +87,7 @@ class Wrap_:
         return False
 
     # Check if the pictures taken aren't too close apart # TODO : implement image detection
-    def w_check(self,frame):
+    def w_check(self, frame):
         self.count_b_p += 1
         if self.p_capture is False and self.strict_eq():
             self.p_capture = True

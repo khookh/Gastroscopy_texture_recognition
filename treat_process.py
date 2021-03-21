@@ -13,7 +13,7 @@ def seg_hsv(img):
     # meth.display_hist(img,count)
     h, s, v = cv.split(img)
     meansat = np.mean(s)
-    if np.mean(h) > 30 or np.mean(s) < 50:  # bri
+    if np.mean(h) > 30 or np.mean(s) < 75:  # bri
         to = False
     # temp seg masks
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
@@ -46,4 +46,4 @@ def process(q_to, q_has):
         if to:
             frame_treated = seg_hsv(frame)
             frame_treated = morph_trans(frame_treated)
-        q_has.put((frame, frame_treated, to, get[3], get[4], meansat))
+        q_has.put((frame, frame_treated, to, get[3], meansat))
