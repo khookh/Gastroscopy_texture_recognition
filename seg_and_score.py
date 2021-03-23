@@ -109,6 +109,7 @@ def display_t():
             end = time.time()
             elapsed = (end - start)
             fps = round(40 / elapsed)
+            start = end
 
         image = info_on_frame(source, local_count, fps)
 
