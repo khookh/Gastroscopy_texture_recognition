@@ -12,33 +12,11 @@ import thread_wrapper as t_w
 import time
 import treat_process as t_p
 
-
-# renvoie un score de qualité à partir de l'image binaire
-def score(ima, _dim):
-    scoring = 0
-    bad_pixels = cv.findNonZero(ima)
-    if bad_pixels is not None:
-        scoring = bad_pixels.shape[0] / (_dim[0] * _dim[1])
-    return scoring
-
-
-kernel = np.ones((7, 7), np.uint8)
-kernelb = np.ones((3, 3), np.uint8)
-
-
-# returns the uniformity of the image
-def uniformity(ima):
-    blur1_uni = cv.GaussianBlur(ima, (5, 5), 1)
-    blur2_uni = cv.GaussianBlur(ima, (31, 31), 2)
-    return np.sum((blur1_uni - blur2_uni) ** 2)
-
-
 # lecture flux vidéo
 count = 1
 over = False
-q_frame = Queue()  # thread
-q_to_treat = Queue()  # process
-q_treated = Queue()  # process
+q_frame = Queue()
+q_treated = Queue()
 
 if str(sys.argv[3]) == "-usb":  # temporaire
     cap = cv.VideoCapture(0)
@@ -48,7 +26,7 @@ else:
     wrap = t_w.Wrap_(os.path.basename(str(sys.argv[1])))
 
 
-# Thread reading the video flux
+# Thread reading the video input
 def read_flux():
     global count, cap, over
     ratio = 1
@@ -76,41 +54,6 @@ def read_flux():
     cap.release()
 
 
-# thread treating the frames
-def frame_treatment():
-    global count, wrap, over
-    local_count = 1
-    frame_treated = np.zeros([216, 384, 3])
-    while True:
-        if q_frame.empty():
-            if over is True:
-                break
-            time.sleep(0)
-        frame = q_frame.get()
-        if local_count == 1:
-            wrap.dim = frame.shape
-            frame_treated = np.zeros(wrap.dim)
-        # uniformity
-        unfy = uniformity(frame) / (wrap.dim[0] * wrap.dim[1])
-        wrap.uniformity_list = np.append(wrap.uniformity_list, unfy)
-        wrap.w_check(frame)
-
-        if local_count % int(sys.argv[4]) == 0:
-            if unfy > 22 and wrap.p_capture is False:
-                q_to_treat.put((frame, frame_treated, True, unfy))  # blur and unfy for debug
-            else:
-                q_to_treat.put((frame, np.zeros([216, 384, 3]), False, unfy))  # blur and unfy for debug
-        local_count += 1
-        while q_treated.empty() is False:  # pour assurer la synchro lors du save(), temp
-            if over:
-                break
-            time.sleep(0)
-
-    wrap.save()
-    wrap.section_score()
-    wrap.output_f(count)
-
-
 # Thread displaying the frames
 def display_t():
     global wrap, over, dim
@@ -134,16 +77,11 @@ def display_t():
         source = q_treated.get()
         frame = source[0]
         frame_treated = source[1]
-        if source[2]:
-            wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, wrap.dim) * 100, 3))
-        else:
-            wrap.save()
         # fps
         if local_count % 40 == 0:
             end = time.time()
             elapsed = (end - start)
             fps = round(40 / elapsed)
-            wrap.fps_list = np.append(wrap.fps_list, fps)
             start = end
         # Affichage
         frame = skimage.color.gray2rgb(frame)
@@ -154,15 +92,11 @@ def display_t():
                 frame = np.hstack((frame, cv.cvtColor(frame_treated, cv.COLOR_GRAY2RGB)))
         frame = cv.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv.INTER_CUBIC)
         # rajoute les paramètres informatifs
-        image = cv.putText(frame, 'Frame %d , %s' % (local_count, source[2]), (5, 170), cv.FONT_HERSHEY_SIMPLEX, .4,
+        image = cv.putText(frame, 'Frame %d ' % local_count, (5, 170), cv.FONT_HERSHEY_SIMPLEX, .4,
                            (0, 0, 255),
                            1,
                            cv.LINE_AA)
-        image = cv.putText(image, 'mean score = %.2f' % np.mean(wrap.section_score_list), (5, 130),
-                           cv.FONT_HERSHEY_SIMPLEX, .5,
-                           (0, 0, 255), 1,
-                           cv.LINE_AA)
-        image = cv.putText(image, 'mean sat = %.2f' % source[4], (5, 60),
+        image = cv.putText(image, 'mean score = %.2f' % source[2], (5, 130),
                            cv.FONT_HERSHEY_SIMPLEX, .5,
                            (0, 0, 255), 1,
                            cv.LINE_AA)
@@ -183,15 +117,13 @@ def display_t():
 
 if __name__ == '__main__':
     thread_fetch = Thread(target=read_flux)
-    thread_treatment = Thread(target=frame_treatment)
     thread_display = Thread(target=display_t)
     thread_fetch.start()
-    thread_treatment.start()
     thread_display.start()
-    treat_proc = Process(target=t_p.process, args=(q_to_treat, q_treated,))
+    treat_proc = Process(target=t_p.process, args=(q_frame, q_treated, os.path.basename(str(sys.argv[1])),))
     treat_proc.daemon = True
     treat_proc.start()
-    thread_treatment.join()
+    thread_display.join()
     treat_proc.kill()
 
 # thread treatment stops when either the display or the fetch has stopped
