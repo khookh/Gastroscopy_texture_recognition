@@ -8,10 +8,12 @@ St-Pierre* in Brussels.
 The main need of the medical team is to extract a standardized score based on the quantity of foam pollution in the gastroscopic videos. First, for use 
 in the context of a medical study and then for 'everyday' physician assistance during gastroscopic exams.
 ## Language and libraries
-Python is the chosen language to write the script due to its versatility. This project make an intensive use of the OpenCV library. 
+Python is the chosen language to write the script due to its versatility. This project make an intensive use of the OpenCV library for image treatment.
+This project also has DNN features for image classification, using Keras and Tensorflow.
 
 ## Functionning
-The script reads a video flux from the path given in argument. (most common formats supported : *.avi, .mov, .mpeg, ...*) 
+The script reads a video flux from the path given in argument. (most common formats supported : *.avi, .mov, .mpeg, ...*)
+It can also reads from USB video input.
 
 Each frame is treated independly : 
 
@@ -19,3 +21,8 @@ Each frame is treated independly :
 2. Foam segmentation in the HSV space
 3. Detection enhancement with morphological transforms
 4. Scoring based on pollution density
+
+In order to be able to segment the score into useful sections, a trained DNN model is used to classify anatomical landmarks from the video.
+More detail about the model/transfer-learning/data-sets is available here https://www.kaggle.com/stefanodonne/gastroscopic-classification
+
+
