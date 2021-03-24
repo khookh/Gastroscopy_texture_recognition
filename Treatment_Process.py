@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-import thread_wrapper as t_w
+import Score_Wrapper as t_w
 import time
 
 to = False  # global
