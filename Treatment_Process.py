@@ -39,7 +39,7 @@ def seg_hsv(img):
     global to
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     h, s, v = cv.split(img)
-    if np.mean(h) > 35 or np.mean(s) < 70:  # threshold to remove frames affected by blue light or too close from lamp
+    if np.mean(h) > 60 or np.mean(s) < 65:  # threshold to remove frames affected by blue light or too close from lamp
         to = False
     # temp seg masks
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
@@ -102,6 +102,7 @@ def process(q_frame, q_treated, path, v):
             frame_treated = np.zeros(wrap.dim)
         q_treated.put((frame, frame_treated, np.mean(wrap.section_score_list), unfy))
         local_count += 1
+
     wrap.save()
     wrap.section_score()
     wrap.output_f(local_count)

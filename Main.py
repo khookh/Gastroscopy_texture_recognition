@@ -114,7 +114,7 @@ def display_t():
         image = info_on_frame(source, local_count, fps)
 
         cv.imshow('comparison', image)
-        # cv.imwrite('frames/test%d.png' % local_count, image)
+        #cv.imwrite('frames/test%d.png' % local_count, image)
         local_count += 1
     cv.destroyAllWindows()
 
