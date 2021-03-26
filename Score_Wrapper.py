@@ -25,6 +25,12 @@ class Wrap_:
         metrics=['accuracy'])
     class_n = ['pylorus', 'retroflex-stomach', 'z-line']  # for now only 3 classes classified
 
+    def section_switch(self, predict):
+        print("Predict class '%s' with %f perc." % (predict[0], predict[1]))
+        if self.section == 1 and predict[0] == 'z-line':
+            self.section += 1
+            self.section_score()
+
     def crop(self, img):
         """
         Crop the frame for accurate DNN classification
@@ -61,7 +67,7 @@ class Wrap_:
         prediction = self.dnnmodel.predict(img)
         index = np.argmax(prediction[0])
         print(prediction[0])
-        return self.class_n[index]
+        return self.class_n[index], prediction[0][index]
 
     def section_score(self):
         """
@@ -72,7 +78,6 @@ class Wrap_:
         self.file.write("_____________________\n")
         self.score_list = np.append(self.score_list, self.section_score_list)
         self.section_score_list = np.array([])
-        self.section += 1
 
     def save(self):
         """
@@ -116,8 +121,7 @@ class Wrap_:
             self.p_capture = True
             if self.count_b_p > 100:
                 self.save()
-                print(self.predict(frame))
-                self.section_score()
+                self.section_switch(self.predict(frame))
             self.temp_score_list = np.array([])
 
         if self.p_capture is True and self.strict_diff():

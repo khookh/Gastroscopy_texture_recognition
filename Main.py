@@ -101,21 +101,21 @@ def display_t():
             if over and q_frame.empty():
                 break
             time.sleep(0)
+        else:
+            source = q_treated.get()  # from treatment process
 
-        source = q_treated.get()  # from treatment process
+            # fps measured every 40 frames
+            if local_count % 40 == 0:
+                end = time.time()
+                elapsed = (end - start)
+                fps = round(40 / elapsed)
+                start = end
 
-        # fps measured every 40 frames
-        if local_count % 40 == 0:
-            end = time.time()
-            elapsed = (end - start)
-            fps = round(40 / elapsed)
-            start = end
+            image = info_on_frame(source, local_count, fps)
 
-        image = info_on_frame(source, local_count, fps)
-
-        cv.imshow('comparison', image)
-        #cv.imwrite('frames/test%d.png' % local_count, image)
-        local_count += 1
+            cv.imshow('comparison', image)
+            #cv.imwrite('frames/test%d.png' % local_count, image)
+            local_count += 1
     cv.destroyAllWindows()
 
 

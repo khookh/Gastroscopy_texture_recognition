@@ -30,21 +30,25 @@ def uniformity(ima):
     return np.sum((blur1_uni - blur2_uni) ** 2)
 
 
-def seg_hsv(img):
+def seg_hsv(img,wrap):
     """
     Transform input into corresponding HSV color space and isolate parts of this space corresponding to pollution
+    :param wrap:
     :param img: frame to be segmented
     :return: mask of detected pollution
     """
     global to
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     h, s, v = cv.split(img)
-    if np.mean(h) > 60 or np.mean(s) < 65:  # threshold to remove frames affected by blue light or too close from lamp
+    if np.mean(h) > 15 or np.mean(s) < 65:  # threshold to remove frames affected by blue light or too close from lamp
         to = False
     # temp seg masks
-    mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
-    mask2 = cv.inRange(img, (0, 0, 90), (30, 70, 170))  # low light foam
-    return mask + mask2
+    if wrap.section == 1:
+        return cv.inRange(img, (0, 20, 170), (60, 60, 245))
+    else:
+        mask = cv.inRange(img, (0, 35, 170), (60, 100, 245))  # direct light
+        mask2 = cv.inRange(img, (0, 0, 90), (30, 80, 170))  # low light foam
+        return mask + mask2
 
 
 # kernel used for morphological transform
@@ -91,7 +95,7 @@ def process(q_frame, q_treated, path, v):
         wrap.w_check(frame)
         if unfy > 20 and wrap.p_capture is False:
             to = True
-            frame_treated = seg_hsv(frame)
+            frame_treated = seg_hsv(frame,wrap)
             if to:
                 frame_treated = morph_trans(frame_treated)
                 wrap.temp_score_list = np.append(wrap.temp_score_list, round(score(frame_treated, wrap.dim) * 100, 3))
