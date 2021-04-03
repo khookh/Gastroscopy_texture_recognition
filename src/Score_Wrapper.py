@@ -17,13 +17,13 @@ class Wrap_:
     p_capture = False  # True if the current frames correspond to an image capture during the gastroscopic exam
     count_b_p = 0
 
-    dnnmodel = tf.keras.models.load_model("./src/model.h5")  # Load trained classification model (accuracy ~ 94%)
+    dnnmodel = tf.keras.models.load_model("./src/model.h5")  # Load trained classification model
     # model trained on kaggle with kvasir dataset https://www.kaggle.com/stefanodonne/gastroscopic-classification
     dnnmodel.compile(
         optimizer='adam',
         loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=['accuracy'])
-    class_n = ['pylorus', 'retroflex-stomach', 'z-line']  # for now only 3 classes classified
+    class_n = ['pylorus', 'retroflex-stomach', 'z-line']  # for now only 3 sites classified
 
     def section_switch(self, predict):
         print("Predict class '%s' with %f perc." % (predict[0], predict[1]))
