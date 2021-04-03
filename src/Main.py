@@ -8,9 +8,8 @@ from threading import Thread
 from multiprocessing import Process, Queue, Value
 import sys
 import os
-import Score_Wrapper as t_w
 import time
-import Treatment_Process as t_p
+from src import Treatment_Process as t_p, Score_Wrapper as t_w
 
 
 def read_flux():

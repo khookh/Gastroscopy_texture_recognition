@@ -17,7 +17,7 @@ class Wrap_:
     p_capture = False  # True if the current frames correspond to an image capture during the gastroscopic exam
     count_b_p = 0
 
-    dnnmodel = tf.keras.models.load_model("./model.h5")  # Load trained classification model (accuracy ~ 94%)
+    dnnmodel = tf.keras.models.load_model("./src/model.h5")  # Load trained classification model (accuracy ~ 94%)
     # model trained on kaggle with kvasir dataset https://www.kaggle.com/stefanodonne/gastroscopic-classification
     dnnmodel.compile(
         optimizer='adam',

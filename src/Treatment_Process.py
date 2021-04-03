@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-import Score_Wrapper as t_w
+from src import Score_Wrapper as t_w
 import time
 
 to = False  # global
