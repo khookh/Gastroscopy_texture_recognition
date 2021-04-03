@@ -27,9 +27,9 @@ def read_flux():
         cv.waitKey(500)
     while over is False:
         ret, frame = cap.read()
-        if q_frame.qsize() > 100:  # to avoid overusing too many resources
+        while q_frame.qsize() > 100:  # to avoid overusing too many resources
             time.sleep(0)
-        elif ret:
+        if ret:
             if count == 1:
                 ratio = round(frame.shape[0] / 216, 2)  # ratio to reduce the size of the image to 216 in height
                 print(ratio)
