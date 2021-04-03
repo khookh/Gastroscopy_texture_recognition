@@ -87,6 +87,7 @@ def display_t():
     local_count = 1
     start = time.time()
     fps = 0
+    fps_list = np.array([])  # temp
     while True:
         k = cv.waitKey(1) & 0xFF
         if k == ord('p'):
@@ -109,6 +110,8 @@ def display_t():
                 elapsed = (end - start)
                 fps = round(40 / elapsed)
                 start = end
+                fps_list = np.append(fps_list,fps)
+
 
             image = info_on_frame(source, local_count, fps)
 
@@ -116,6 +119,7 @@ def display_t():
             #cv.imwrite('frames/test%d.png' % local_count, image)
             local_count += 1
     cv.destroyAllWindows()
+    print(np.mean(fps_list))
 
 
 if __name__ == '__main__':
@@ -123,7 +127,6 @@ if __name__ == '__main__':
     over = False
     q_frame = Queue()
     q_treated = Queue()
-
     if str(sys.argv[3]) == "-usb":  # temporaire
         cap = cv.VideoCapture(0)
         wrap = t_w.Wrap_("output_hd")

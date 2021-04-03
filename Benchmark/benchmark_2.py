@@ -14,7 +14,7 @@ def predict(img):
 
 if __name__ == '__main__':
     start = time.time()
-    dnn_model = tf.keras.models.load_model("../model.h5")  # Load trained classification model (accuracy ~ 94%)
+    dnn_model = tf.keras.models.load_model("../src/model.h5")  # Load trained classification model (accuracy ~ 94%)
     # model trained on kaggle with kvasir dataset https://www.kaggle.com/stefanodonne/gastroscopic-classification
     dnn_model.compile(
         optimizer='adam',
