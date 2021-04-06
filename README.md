@@ -22,7 +22,7 @@ Each frame is treated independly :
 3. Detection enhancement with morphological transforms
 4. Scoring based on pollution density
 
-In order to be able to segment the score into useful sections, a trained DNN model is used to classify anatomical landmarks from the video.
+In order to be able to separate the score into relevant sections, a trained DNN model is used to classify anatomical landmarks from the video.
 More detail about the model/transfer-learning/data-sets is available here https://www.kaggle.com/stefanodonne/gastroscopic-classification
 
 
