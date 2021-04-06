@@ -38,8 +38,8 @@ def read_flux():
         else:
             cap = cv.VideoCapture(str(sys.argv[1]))
         cv.waitKey(500)
-    start = time.time()
     while True:
+        start = time.time()
         cv.waitKey(1)
         ret, frame = cap.read()
         if count == 1:
@@ -49,12 +49,10 @@ def read_flux():
             frame = cv.resize(frame[c_s[0]:c_s[1], c_s[2]:c_s[3]], None, fx=ratio, fy=ratio,
                               interpolation=cv.INTER_CUBIC)
             q_frame.put(frame)
-            end = time.time()
-            fps = 1 / (end - start)
-            start = end
-            fps_list = np.append(fps_list, fps)
-            cv.imshow('window',frame)
+            cv.imshow('window', frame)
             count += 1
+            end = time.time()
+            fps_list = np.append(fps_list, end - start)
         else:
             break
     cap.release()

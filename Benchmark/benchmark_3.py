@@ -9,10 +9,16 @@ def treatment(img):  # some library call, no logic here
     kernel = np.ones((7, 7), np.uint8)
     img = cv.GaussianBlur(img, (5, 5), 1)
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+    h, s, v = cv.split(img)
+    a = np.mean(h)
     mask = cv.inRange(img, (0, 35, 170), (60, 100, 250))
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)  # clustering
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)  # de-noise
-    return cv.findNonZero(mask)
+    bad_pixels = cv.findNonZero(mask)
+    scoring = 0
+    if bad_pixels is not None:
+        scoring = bad_pixels.shape[0] / (216 * 216)
+    return scoring
 
 
 def crop(img):
@@ -38,6 +44,7 @@ def read_flux():
     Thread fetching frames
     """
     global count, cap
+
     c_s = []
     tps_list = np.array([])
     ratio = 1
@@ -57,10 +64,11 @@ def read_flux():
             frame = cv.resize(frame[c_s[0]:c_s[1], c_s[2]:c_s[3]], None, fx=ratio, fy=ratio,
                               interpolation=cv.INTER_CUBIC)
             start = time.time()
-            treatment(frame)
+            a = treatment(frame)
             end = time.time()
-            tps = 1 / (end - start)
+            tps = (end - start)
             tps_list = np.append(tps_list, tps)
+            print(np.mean(tps_list))
             count += 1
         else:
             break

@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
 import numpy as np
-import skimage.color
-import skimage.viewer
 import cv2 as cv
 from threading import Thread
 from multiprocessing import Process, Queue, Value
@@ -26,7 +24,7 @@ def read_flux():
         cv.waitKey(500)
     while over is False:
         ret, frame = cap.read()
-        while q_frame.qsize() > 100:  # to avoid overusing too many resources
+        while q_frame.qsize() > 50:  # to avoid overusing too many resources
             time.sleep(0)
         if ret:
             if count == 1:
@@ -50,9 +48,8 @@ def info_on_frame(source, local_count, fps):
     """
     frame = source[0]
     frame_treated = source[1]
-
     # Affichage
-    frame = skimage.color.gray2rgb(frame)
+
     # resize pour affichage propre
     # concatene les deux images pour comparaison
     if str(sys.argv[2]) == "-conc":  # temporaire
@@ -110,16 +107,14 @@ def display_t():
                 elapsed = (end - start)
                 fps = round(40 / elapsed)
                 start = end
-                fps_list = np.append(fps_list,fps)
-
+                fps_list = np.append(fps_list, fps) # temp
 
             image = info_on_frame(source, local_count, fps)
 
             cv.imshow('comparison', image)
-            #cv.imwrite('frames/test%d.png' % local_count, image)
+            # cv.imwrite('frames/test%d.png' % local_count, image)
             local_count += 1
     cv.destroyAllWindows()
-    print(np.mean(fps_list))
 
 
 if __name__ == '__main__':

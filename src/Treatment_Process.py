@@ -41,12 +41,12 @@ def seg_hsv(img, wrap):
     img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     h, s, v = cv.split(img)
     # temp seg masks
-    if wrap.section == 1:
+    if wrap.section == 0:  # not implemented yet : for section specific rules
         return cv.inRange(img, (0, 0, 90), (30, 60, 250))
     else:
         if np.mean(h) > 14 or np.mean(
-                s) < 60:  # threshold to remove frames affected by blue light or too close from lamp
-            #print('mean h : %i | mean  s : %i' % (np.mean(h), np.mean(s)))
+                s) < 60:  # threshold to remove frames affected by blue light or too close from light source
+            # print('mean h : %i | mean  s : %i' % (np.mean(h), np.mean(s)))
             to = False
         mask = cv.inRange(img, (0, 35, 170), (60, 100, 250))  # direct light
         mask2 = cv.inRange(img, (0, 0, 90), (30, 80, 170))  # low light foam
